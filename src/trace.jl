@@ -4,5 +4,10 @@ ytrace:
 - Author: Andrea
 - Date: 2023-01-03
 =#
-function make_scene_bvh()
-    end
+
+include("bvh.jl")
+
+function run()
+
+    make_scene_bvh(1, false, false)
+end
