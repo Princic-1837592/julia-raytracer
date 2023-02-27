@@ -7,7 +7,7 @@ shape:
 
 module Shape
 
-using PlyIO: load_ply
+using PlyIO: load_ply, ArrayProperty
 using ..Math: Vec2i, Vec3f, Vec4f, Vec3i, Vec4i, Vec2f
 
 struct ShapeData
@@ -28,10 +28,11 @@ struct ShapeData
             error("only ply files are supported")
         end
         ply = load_ply(filename)
-        #         dump(ply)
-        positions = get_positions(ply)
-        dump(positions[1])
-        dump(positions[length(positions)])
+        positions = get_vec3f_array(ply, "vertex", ["x", "y", "z"])
+        normals = get_vec3f_array(ply, "vertex", ["nx", "ny", "nz"])
+        #         dump(normals[1])
+        #         dump(normals[length(normals)])
+        #get_lines yocto_modelio.h line 713
         new(
             Array{Int32,1}(),
             Array{Vec2i,1}(),
@@ -46,29 +47,35 @@ struct ShapeData
         )
     end
 
-    function get_positions(ply)
-        element = ply["vertex"]
-        properties = ["x", "y", "z"]
-        x = nothing
-        y = nothing
-        z = nothing
+    function get_vec3f_array(
+        ply,
+        s_element::String,
+        s_properties::Array{String,1},
+    )::Array{Vec3f,1}
+        element = ply[s_element]
+        properties = Vector{ArrayProperty{Float32,String}}(undef, 3)
+        exists = [false, false, false]
         for property in element.properties
-            if property.name == "x"
-                x = property
-            elseif property.name == "y"
-                y = property
-            elseif property.name == "z"
-                z = property
+            if property.name == s_properties[1]
+                exists[1] = true
+                properties[1] = property
+            elseif property.name == s_properties[2]
+                exists[2] = true
+                properties[2] = property
+            elseif property.name == s_properties[3]
+                exists[3] = true
+                properties[3] = property
             end
         end
-        if x == nothing || y == nothing || z == nothing
+        if !all(exists)
             error("missing properties")
         end
-        positions = Array{Vec3f,1}(undef, length(x.data))
-        for i in 1:length(x.data)
-            positions[i] = Vec3f(x.data[i], y.data[i], z.data[i])
+        result = Array{Vec3f,1}(undef, length(properties[1].data))
+        for i in 1:length(properties[1].data)
+            result[i] =
+                Vec3f(properties[1].data[i], properties[2].data[i], properties[3].data[i])
         end
-        return positions
+        return result
     end
 end
 
