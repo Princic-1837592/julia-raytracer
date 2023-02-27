@@ -17,7 +17,7 @@ function load_scene(filename::String)::SceneData
     if haskey(json, "cameras")
         cameras = json["cameras"]
         sizehint!(scene.cameras, length(cameras))
-        for camera in json["cameras"]
+        for camera in cameras
             push!(scene.cameras, CameraData(camera))
         end
     end
