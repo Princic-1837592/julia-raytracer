@@ -9,7 +9,7 @@ module SceneIO
 
 # using PlyIO
 using JSON: parsefile
-using ..Scene: SceneData, CameraData, TextureData
+using ..Scene: SceneData, CameraData, TextureData, MaterialData
 
 function load_scene(filename::String)::SceneData
     scene = SceneData()
@@ -26,6 +26,13 @@ function load_scene(filename::String)::SceneData
         resize!(scene.textures, length(textures))
         Threads.@threads for i in 1:length(textures)
             scene.textures[i] = TextureData(textures[i])
+        end
+    end
+    if haskey(json, "materials")
+        materials = json["materials"]
+        sizehint!(scene.materials, length(materials))
+        for material in materials
+            push!(scene.materials, MaterialData(material))
         end
     end
     return scene
