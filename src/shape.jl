@@ -7,6 +7,7 @@ shape:
 
 module Shape
 
+using PlyIO: load_ply
 using ..Math: Vec2i, Vec3f, Vec4f, Vec3i, Vec4i, Vec2f
 
 struct ShapeData
@@ -22,6 +23,15 @@ struct ShapeData
     tangents  :: Array{Vec4f,1}
     function ShapeData(json, dir::String)
         #todo yocto_sceneio.cpp line 946
+        filename = joinpath(dir, json["uri"])
+        if splitext(filename)[2] != ".ply"
+            error("only ply files are supported")
+        end
+        ply = load_ply(filename)
+        #         dump(ply)
+        positions = get_positions(ply)
+        dump(positions[1])
+        dump(positions[length(positions)])
         new(
             Array{Int32,1}(),
             Array{Vec2i,1}(),
@@ -34,6 +44,31 @@ struct ShapeData
             Array{Float32,1}(),
             Array{Vec4f,1}(),
         )
+    end
+
+    function get_positions(ply)
+        element = ply["vertex"]
+        properties = ["x", "y", "z"]
+        x = nothing
+        y = nothing
+        z = nothing
+        for property in element.properties
+            if property.name == "x"
+                x = property
+            elseif property.name == "y"
+                y = property
+            elseif property.name == "z"
+                z = property
+            end
+        end
+        if x == nothing || y == nothing || z == nothing
+            error("missing properties")
+        end
+        positions = Array{Vec3f,1}(undef, length(x.data))
+        for i in 1:length(x.data)
+            positions[i] = Vec3f(x.data[i], y.data[i], z.data[i])
+        end
+        return positions
     end
 end
 
