@@ -66,7 +66,7 @@ struct TextureData
     linear  :: Bool
     pixelsf :: Array{Vec4f,1}
     pixelsb :: Array{Vec4b,1}
-    function TextureData(json)
+    function TextureData(json, dir::String)
         #todo yocto_sceneio.cpp line 1734
         new(0, 0, false, Array{Vec4f,1}(), Array{Vec4b,1}())
     end

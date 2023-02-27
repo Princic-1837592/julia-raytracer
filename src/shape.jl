@@ -20,7 +20,7 @@ struct ShapeData
     colors    :: Array{Vec4f,1}
     radius    :: Array{Float32,1}
     tangents  :: Array{Vec4f,1}
-    function ShapeData(json)
+    function ShapeData(json, dir::String)
         #todo yocto_sceneio.cpp line 946
         new(
             Array{Int32,1}(),
