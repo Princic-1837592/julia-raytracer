@@ -28,7 +28,7 @@ Vec4b() = Vec4b(0, 0, 0, 0)
 const Frame3f = SVector{4,Vec3f}
 function Frame3f(array::Vector{Float32})
     if length(array) != 12
-        return Frame3f()
+        array = Vector([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0])
     end
     x = Vec3f(array[1], array[2], array[3])
     y = Vec3f(array[4], array[5], array[6])
