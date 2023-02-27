@@ -38,12 +38,26 @@ struct InstanceData
     frame    :: Frame3f
     shape    :: Int32
     material :: Int32
+    function InstanceData(json)
+        frame = Frame3f(Float32.(get(json, "frame", Vector())))
+        shape = get(json, "shape", invalid_id - 1) + 1
+        material = get(json, "material", invalid_id - 1) + 1
+        #todo lookat
+        new(frame, shape, material)
+    end
 end
 
 struct EnvironmentData
     frame        :: Frame3f
     emission     :: Vec3f
     emission_tex :: Int32
+    function EnvironmentData(json)
+        frame = Frame3f(Float32.(get(json, "frame", Vector())))
+        emission = get(json, "emission", Vec3f())
+        emission_tex = get(json, "emission_tex", invalid_id - 1) + 1
+        #todo lookat
+        new(frame, emission, emission_tex)
+    end
 end
 
 struct TextureData
@@ -106,11 +120,11 @@ struct MaterialData
         scanisotropy = get(json, "scanisotropy", 0)
         trdepth = get(json, "trdepth", 0.01)
         opacity = get(json, "opacity", 1)
-        emission_tex = get(json, "emission_tex", invalid_id)
-        color_tex = get(json, "color_tex", invalid_id)
-        roughness_tex = get(json, "roughness_tex", invalid_id)
-        scattering_tex = get(json, "scattering_tex", invalid_id)
-        normal_tex = get(json, "normal_tex", invalid_id)
+        emission_tex = get(json, "emission_tex", invalid_id - 1) + 1
+        color_tex = get(json, "color_tex", invalid_id - 1) + 1
+        roughness_tex = get(json, "roughness_tex", invalid_id - 1) + 1
+        scattering_tex = get(json, "scattering_tex", invalid_id - 1) + 1
+        normal_tex = get(json, "normal_tex", invalid_id - 1) + 1
         new(
             type,
             emission,
@@ -154,8 +168,8 @@ struct SceneData
     textures     :: Array{TextureData,1}
     materials    :: Array{MaterialData,1}
     subdivs      :: Array{SubdivData,1}
-
     #names are necessary??
+
     SceneData() = new(
         CameraData[],
         InstanceData[],
