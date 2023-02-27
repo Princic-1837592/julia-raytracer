@@ -68,6 +68,16 @@ end
     volumetric
     gltfpbr
 end
+MaterialTypes = Dict(
+    "matte" => matte,
+    "glossy" => glossy,
+    "reflective" => reflective,
+    "transparent" => transparent,
+    "refractive" => refractive,
+    "subsurface" => subsurface,
+    "volumetric" => volumetric,
+    "gltfpbr" => gltfpbr,
+)
 
 struct MaterialData
     type           :: MaterialType
@@ -85,6 +95,40 @@ struct MaterialData
     roughness_tex  :: Int32
     scattering_tex :: Int32
     normal_tex     :: Int32
+    function MaterialData(json)
+        type = get(MaterialTypes, get(json, "type", "matte"), matte)
+        emission = get(json, "emission", Vec3f())
+        color = get(json, "color", Vec3f())
+        roughness = get(json, "roughness", 0)
+        metallic = get(json, "metallic", 0)
+        ior = get(json, "ior", 1.5)
+        scattering = get(json, "scattering", Vec3f())
+        scanisotropy = get(json, "scanisotropy", 0)
+        trdepth = get(json, "trdepth", 0.01)
+        opacity = get(json, "opacity", 1)
+        emission_tex = get(json, "emission_tex", invalid_id)
+        color_tex = get(json, "color_tex", invalid_id)
+        roughness_tex = get(json, "roughness_tex", invalid_id)
+        scattering_tex = get(json, "scattering_tex", invalid_id)
+        normal_tex = get(json, "normal_tex", invalid_id)
+        new(
+            type,
+            emission,
+            color,
+            roughness,
+            metallic,
+            ior,
+            scattering,
+            scanisotropy,
+            trdepth,
+            opacity,
+            emission_tex,
+            color_tex,
+            roughness_tex,
+            scattering_tex,
+            normal_tex,
+        )
+    end
 end
 
 struct SubdivData
