@@ -30,8 +30,10 @@ struct ShapeData
         ply = load_ply(filename)
         positions = get_vec3f_array(ply, "vertex", ["x", "y", "z"])
         normals = get_vec3f_array(ply, "vertex", ["nx", "ny", "nz"])
-        #         dump(normals[1])
-        #         dump(normals[length(normals)])
+        textures = get_tex_coords(ply, true)
+        println(json["uri"])
+        dump(textures[1])
+        dump(textures[length(textures)])
         #get_lines yocto_modelio.h line 713
         new(
             Array{Int32,1}(),
@@ -76,6 +78,48 @@ struct ShapeData
                 Vec3f(properties[1].data[i], properties[2].data[i], properties[3].data[i])
         end
         return result
+    end
+
+    function get_vec2f_array(
+        ply,
+        s_element::String,
+        s_properties::Array{String,1},
+        flip::Bool,
+    )::Array{Vec2f,1}
+        element = ply[s_element]
+        properties = Vector{ArrayProperty{Float32,String}}(undef, 2)
+        exists = [false, false]
+        for property in element.properties
+            if property.name == s_properties[1]
+                exists[1] = true
+                properties[1] = property
+            elseif property.name == s_properties[2]
+                exists[2] = true
+                properties[2] = property
+            end
+        end
+        if !all(exists)
+            error("missing properties")
+        end
+        result = Array{Vec2f,1}(undef, length(properties[1].data))
+        for i in 1:length(properties[1].data)
+            result[i] = if flip
+                Vec2f(properties[1].data[i], 1 - properties[2].data[i])
+            else
+                Vec2f(properties[1].data[i], properties[2].data[i])
+            end
+        end
+        return result
+    end
+
+    function get_tex_coords(ply, flip::Bool)::Array{Vec2f,1}
+        for property in ply["vertex"].properties
+            if property.name == "s"
+                return get_vec2f_array(ply, "vertex", ["s", "t"], flip)
+            else
+                return get_vec2f_array(ply, "vertex", ["u", "v"], flip)
+            end
+        end
     end
 end
 
