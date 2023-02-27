@@ -20,10 +20,9 @@ using .Trace: make_trace_lights, make_trace_state, trace_samples
 
 function main()
     params = parse_cli_args()
-    #     display(params)
     println("loading scene...")
     scene = load_scene(params["scene"])
-    dump(scene)
+    #     dump(scene)
     if params["addsky"]
         println("adding sky...")
         add_sky(scene)
