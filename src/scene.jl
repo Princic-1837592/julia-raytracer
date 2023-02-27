@@ -11,6 +11,8 @@ using StaticArrays: SVector
 using ..Math: Frame3f, Vec3f, Vec4f, Vec4b, Vec4i
 using ..Shape: ShapeData
 
+const invalid_id = -1
+
 struct CameraData
     frame        :: Frame3f
     orthographic :: Bool
