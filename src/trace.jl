@@ -1,13 +1,18 @@
 #=
-ytrace:
-- Julia version: 
+trace:
+- Julia version: 1.8.3
 - Author: Andrea
-- Date: 2023-01-03
+- Date: 2023-02-26
 =#
 
-include("bvh.jl")
-
-function run()
-
-    make_scene_bvh(1, false, false)
+module Trace
+struct TraceState
+    width::Int
+    height::Int
+    samples::Int
+    image::Array{Float32,1}
+end
+function make_trace_lights(scene, params) end
+function make_trace_state(scene, params) end
+function trace_samples(state, scene, bvh, lights, params) end
 end
