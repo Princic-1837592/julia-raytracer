@@ -1,67 +1,36 @@
-import ArgParse
-import JSON
-
-
-
 #=
-    Parses command line interface arguments.
+sceneio:
+- Julia version: 1.8.3
+- Author: Andrea
+- Date: 2023-02-26
 =#
-function parse_cli()
-    parser = ArgParseSettings()
 
-    @add_arg_table! settings begin
-        "--scene", "-s"
-            help = "scene filename" #TODO: add a check to return or raise an error if the input is not in .ply format
-            required = true
-        "--output", "-o"
-            help = "output filename"
-            default = "output.png"      #TODO: in case we export to jpg, change it
-            required = false
-        "--addsky"
-            help = "add sky"
-            required = false
-        "--resolution"
-            help = "image resolution"
+module SceneIO
+
+# using PlyIO
+using JSON: parsefile
+using ..Scene: SceneData, CameraData, TextureData
+
+function load_scene(filename::String)::SceneData
+    scene = SceneData()
+    json = parsefile(filename::AbstractString; inttype = Int32)
+    if haskey(json, "cameras")
+        cameras = json["cameras"]
+        sizehint!(scene.cameras, length(cameras))
+        for camera in json["cameras"]
+            push!(scene.cameras, CameraData(camera))
+        end
     end
-
-    return parse_args(parser)
+    if haskey(json, "textures")
+        textures = json["textures"]
+        resize!(scene.textures, length(textures))
+        Threads.@threads for i in 1:length(textures)
+            scene.textures[i] = TextureData(textures[i])
+        end
+    end
+    return scene
 end
 
+function add_environment(scene, params) end
 
-
-#=
-    Loads a scene in .ply format
-=#
-function load_ply_scene(filename::String, scene::scene_data) #TODO: implement scene_data structure
-    shape = shape_data() #TODO: implement shape_data structure
-    if !load_shape(filename, shape)
-        return false
-    end
-
-    scene.shapes.push(shape)
-    scene.instances.push() #TODO: implement (see yocto_sceneio.cpp:4301)
-
-    #fix scene
-    add_missing_material(scene) #TODO: implement all of these
-    add_missing_camera(scene)
-    add_missing_radius(scene)
-    add_missing_lights(scene)
-
-    return true
-end
-
-
-#=
-    Add environment
-=#
-function add_environment(filename::String, scene::scene_data)
-    texture = texture_data() #TODO: implement texture_data structure
-    if !load_texture(filename, texture)
-        return false
-    end
-
-    scene.textures.push(texture)
-    scene.environments.push() #TODO: implement (see yocto_sceneio.cpp:2787)
-
-    return true
 end
