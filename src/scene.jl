@@ -20,11 +20,7 @@ struct CameraData
     focus        :: Float32
     aperture     :: Float32
     function CameraData(json)
-        frame = if haskey(json, "frame")
-            Frame3f(Float32.(json["frame"]))
-        else
-            Frame3f()
-        end
+        frame = Frame3f(Float32.(get(json, "frame", Vector())))
         orthographic = get(json, "orthographic", false)
         lens = get(json, "lens", 0.050)
         film = get(json, "film", 0.036)
