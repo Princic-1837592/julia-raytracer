@@ -28,7 +28,8 @@ function load_scene(filename::String)::SceneData
         textures = json["textures"]
         resize!(scene.textures, length(textures))
         Threads.@threads for i in 1:length(textures)
-            scene.textures[i] = TextureData(textures[i], dir)
+            scene.textures[i] = TextureData()
+            load_texture(joinpath(dir, textures[i]["uri"]), scene.textures[i])
         end
     end
     if haskey(json, "materials")
