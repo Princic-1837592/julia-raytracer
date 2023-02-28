@@ -186,6 +186,24 @@ struct ShapeData
         return true
     end
 
+    function get_f_array(
+        ply,
+        s_element::String,
+        s_property::String,
+        array::Array{Float32,1},
+    )::Bool
+        for property in ply[s_element].properties
+            if property.name == s_property
+                resize!(array, length(property.data))
+                for i in 1:length(property.data)
+                    array[i] = property.data[i]
+                end
+                return true
+            end
+        end
+        return false
+    end
+
     function get_tex_coords(ply, flip::Bool, array::Array{Vec2f,1})::Bool
         for property in ply["vertex"].properties
             if property.name == "s"
@@ -216,22 +234,6 @@ struct ShapeData
             array[i] = Vec4f(partial[i][1], partial[i][2], partial[i][3], 1)
         end
         return true
-    end
-
-    function get_radius(ply)::Array{Float32,1}
-        for property in ply["vertex"].properties
-            if property.name == "radius"
-                property = ply["vertex"]["radius"]
-                if property isa ArrayProperty{Float32,String}
-                    result = Array{Float32,1}(undef, length(property.data))
-                    for i in 1:length(property.data)
-                        result[i] = property.data[i]
-                    end
-                    return result
-                end
-            end
-        end
-        return Array{Float32,1}(undef, 0)
     end
 
     function get_faces(ply)::(Array{Vec3i,1}, Array{Vec4i,1})
