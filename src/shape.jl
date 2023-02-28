@@ -269,7 +269,7 @@ struct ShapeData
         return false
     end
 
-    function get_quads(ply::Ply, property::ListProperty, quads::Array{Vec4i,1})::Bool
+    function get_vec4i_array(ply::Ply, property::ListProperty, quads::Array{Vec4i,1})::Bool
         sizehint!(quads, length(property.start_inds) - 1)
         for i in 1:(length(property.start_inds) - 1)
             index = property.start_inds[i]
@@ -279,7 +279,7 @@ struct ShapeData
             elseif size == 1
                 push!(quads, Vec4i(property.data[index], -1, -1, -1))
             elseif size == 2
-                push!(quads, Vec4i(property.data[index], property.data[index + 1], -1,-1))
+                push!(quads, Vec4i(property.data[index], property.data[index + 1], -1, -1))
             elseif size == 3
                 push!(
                     quads,
@@ -301,7 +301,7 @@ struct ShapeData
                     ),
                 )
             else
-                for item in 2:(size-1)
+                for item in 2:(size - 1)
                     push!(
                         quads,
                         Vec4i(
@@ -317,7 +317,7 @@ struct ShapeData
         return true
     end
 
-    function get_triangles(
+    function get_vec3i_array(
         ply::Ply,
         property::ListProperty{UInt8,Int32},
         triangles::Array{Vec3i,1},
@@ -342,7 +342,7 @@ struct ShapeData
                     ),
                 )
             else
-                for item in 2:(size-1)
+                for item in 2:(size - 1)
                     push!(
                         triangles,
                         Vec3i(
@@ -350,6 +350,29 @@ struct ShapeData
                             property.data[index + item - 1],
                             property.data[index + item],
                         ),
+                    )
+                end
+            end
+        end
+        return true
+    end
+
+    function get_vec2i_array(ply::Ply, property::ListProperty, lines::Array{Vec2i,1})::Bool
+        sizehint!(lines, length(property.start_inds) - 1)
+        for i in 1:(length(property.start_inds) - 1)
+            index = property.start_inds[i]
+            size = property.start_inds[i + 1] - index
+            if size == 0
+                push!(lines, Vec2i(-1, -1))
+            elseif size == 1
+                push!(lines, Vec2i(property.data[index], -1))
+            elseif size == 2
+                push!(lines, Vec2i(property.data[index], property.data[index + 1]))
+            else
+                for item in 1:(size - 1)
+                    push!(
+                        lines,
+                        Vec2i(property.data[index + item - 1], property.data[index + item]),
                     )
                 end
             end
@@ -366,9 +389,9 @@ struct ShapeData
         quads::Array{Vec4i,1},
     )::Bool
         if has_quads(ply, element, property)
-            return get_quads(ply, ply[element][property], quads)
+            return get_vec4i_array(ply, ply[element][property], quads)
         end
-        return get_triangles(ply, ply[element][property], triangles)
+        return get_vec3i_array(ply, ply[element][property], triangles)
     end
 end
 
