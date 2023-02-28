@@ -73,7 +73,7 @@ struct ShapeData
             end
         end
         if !all(exists)
-            error("missing properties")
+            return Array{Vec4f,1}(undef, 0)
         end
         result = Array{Vec4f,1}(undef, length(properties[1].data))
         for i in 1:length(properties[1].data)
@@ -137,7 +137,7 @@ struct ShapeData
             end
         end
         if !all(exists)
-            error("missing properties")
+            return Array{Vec2f,1}(undef, 0)
         end
         result = Array{Vec2f,1}(undef, length(properties[1].data))
         for i in 1:length(properties[1].data)
