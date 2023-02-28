@@ -24,33 +24,34 @@ struct ShapeData
     function ShapeData(json, dir::String)
         #todo yocto_sceneio.cpp line 946
         filename = joinpath(dir, json["uri"])
+        println("$(json["uri"])")
         if splitext(filename)[2] != ".ply"
             error("only ply files are supported")
         end
         ply = load_ply(filename)
         positions = Array{Vec3f,1}(undef, 0)
         result = get_vec3f_array(ply, "vertex", ["x", "y", "z"], positions)
-        #         println("$(json["uri"]) $result $(length(positions))")
+        #         println("positions $result $(length(positions))")
         #         println("$(positions[1][1]) $(positions[1][2]) $(positions[1][3])")
         #         println(
         #             "$(positions[length(positions)][1]) $(positions[length(positions)][2]) $(positions[length(positions)][3])",
         #         )
         normals = Array{Vec3f,1}(undef, 0)
         result = get_vec3f_array(ply, "vertex", ["nx", "ny", "nz"], normals)
-        #         println("$(json["uri"]) $result $(length(normals))")
+        #         println("normals $result $(length(normals))")
         #         println("$(normals[1][1]) $(normals[1][2]) $(normals[1][3])")
         #         println(
         #             "$(normals[length(normals)][1]) $(normals[length(normals)][2]) $(normals[length(normals)][3])",
         #         )
         texcoords = Array{Vec2f,1}(undef, 0)
         result = get_tex_coords(ply, true, texcoords)
-        #         println("$(json["uri"]) $result $(length(texcoords))")
+        #         println("texcoords $result $(length(texcoords))")
         #         println("$(texcoords[1][1]) $(texcoords[1][2])")
         #         println("$(texcoords[length(texcoords)][1]) $(texcoords[length(texcoords)][2])")
         #todo check in case there are more than 0
         colors = Array{Vec4f,1}(undef, 0)
         result = get_colors(ply, colors)
-        println("$(json["uri"]) colors $result $(length(colors))")
+        #         println("colors $result $(length(colors))")
         if length(colors) > 0
             println("$(colors[1][1]) $(colors[1][2]) $(colors[1][3]) $(colors[1][4])")
             println(
@@ -59,14 +60,16 @@ struct ShapeData
         end
         radius = Array{Float32,1}(undef, 0)
         result = get_f_array(ply, "vertex", "radius", radius)
-        println("$(json["uri"]) radius $result $(length(radius))")
+        #         println("radius $result $(length(radius))")
         if length(radius) > 0
             println("$(radius[1])")
             println("$(radius[length(radius)])")
         end
-        #         #todo check in case there are more than 0
-        #         (triangles, quads) = get_faces(ply)
-        #         println(json["uri"], " ", length(triangles), " ", length(quads))
+        #todo check in case there are more than 0
+        triangles = Array{Vec3i,1}(undef, 0)
+        quads = Array{Vec4i,1}(undef, 0)
+        result = get_faces(ply, "face", "vertex_indices", triangles, quads)
+        #         println("triangles-quads $result $(length(triangles)) $(length(quads))")
         #         println("$(json["uri"]) $(length(triangles)) $(length(quads))")
         #         if length(triangles) > 0
         #             dump(triangles[1])
