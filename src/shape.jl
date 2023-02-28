@@ -26,9 +26,8 @@ mutable struct ShapeData
 end
 
 function load_shape(path::String, shape::ShapeData)::Bool
-    println("$path")
     if splitext(path)[2] != ".ply"
-        error("only ply files are supported")
+        return false
     end
     ply = load_ply(path)
     shape.positions = Array{Vec3f,1}(undef, 0)
@@ -50,12 +49,10 @@ function load_shape(path::String, shape::ShapeData)::Bool
     shape.points = Array{Int32,1}(undef, 0)
     result = get_list_values(ply, "point", "vertex_indices", shape.points)
 
-    return !(
-        length(shape.points) == 0 &&
-        length(shape.lines) == 0 &&
-        length(shape.triangles) == 0 &&
-        length(shape.quads) == 0
-    )
+    return length(shape.points) != 0 ||
+           length(shape.lines) != 0 ||
+           length(shape.triangles) != 0 ||
+           length(shape.quads) != 0
 end
 
 function get_vec4f_array(
