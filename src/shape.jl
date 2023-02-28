@@ -248,8 +248,37 @@ struct ShapeData
         return true
     end
 
-    function get_faces(ply)::(Array{Vec3i,1}, Array{Vec4i,1})
-        return (Array{Vec3i,1}(undef, 0), Array{Vec4i,1}(undef, 0))
+    function has_quads(ply, element::String, s_property::String)::Bool
+        for property in ply[element].properties
+            if property.name == s_property
+                if !(property isa ListProperty)
+                    return false
+                end
+                for size in property.start_inds
+                    if size == 5
+                        return true
+                    end
+                end
+            end
+        end
+        return false
+    end
+
+    function get_faces(
+        ply,
+        element::String,
+        property::String,
+        triangles::Array{Vec3i,1},
+        quads::Array{Vec4i,1},
+    )::Bool
+        if has_quads(ply, element, property)
+            #yocto_modelio.h line 651
+            println("has quads")
+            return false
+        end
+        #yocto_modelio.h line 618
+        println("!has quads")
+        return false
     end
 end
 
