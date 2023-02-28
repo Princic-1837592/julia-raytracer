@@ -7,7 +7,6 @@ sceneio:
 
 module SceneIO
 
-# using PlyIO
 using JSON: parsefile
 using ..Scene:
     SceneData, CameraData, TextureData, MaterialData, InstanceData, EnvironmentData
