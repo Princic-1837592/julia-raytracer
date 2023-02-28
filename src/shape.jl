@@ -49,6 +49,44 @@ struct ShapeData
         )
     end
 
+    function get_vec4f_array(
+        ply,
+        s_element::String,
+        s_properties::Array{String,1},
+    )::Array{Vec4f,1}
+        element = ply[s_element]
+        properties = Vector{ArrayProperty{Float32,String}}(undef, 4)
+        exists = [false, false, false, false]
+        for property in element.properties
+            if property.name == s_properties[1]
+                exists[1] = true
+                properties[1] = property
+            elseif property.name == s_properties[2]
+                exists[2] = true
+                properties[2] = property
+            elseif property.name == s_properties[3]
+                exists[3] = true
+                properties[3] = property
+            elseif property.name == s_properties[4]
+                exists[4] = true
+                properties[4] = property
+            end
+        end
+        if !all(exists)
+            error("missing properties")
+        end
+        result = Array{Vec4f,1}(undef, length(properties[1].data))
+        for i in 1:length(properties[1].data)
+            result[i] = Vec4f(
+                properties[1].data[i],
+                properties[2].data[i],
+                properties[3].data[i],
+                properties[4].data[i],
+            )
+        end
+        return result
+    end
+
     function get_vec3f_array(
         ply,
         s_element::String,
@@ -70,7 +108,7 @@ struct ShapeData
             end
         end
         if !all(exists)
-            error("missing properties")
+            return Array{Vec3f,1}(undef, 0)
         end
         result = Array{Vec3f,1}(undef, length(properties[1].data))
         for i in 1:length(properties[1].data)
