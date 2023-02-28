@@ -279,7 +279,7 @@ struct ShapeData
             elseif size == 1
                 push!(quads, Vec4i(property.data[index], -1, -1, -1))
             elseif size == 2
-                push!(quads, Vec4i(property.data[index], property.data[index + 1], -1))
+                push!(quads, Vec4i(property.data[index], property.data[index + 1], -1,-1))
             elseif size == 3
                 push!(
                     quads,
