@@ -7,7 +7,7 @@ shape:
 
 module Shape
 
-using PlyIO: load_ply, ArrayProperty, ListProperty
+using PlyIO: load_ply, ArrayProperty, ListProperty, Ply
 using ..Math: Vec2i, Vec3f, Vec4f, Vec3i, Vec4i, Vec2f
 
 struct ShapeData
@@ -24,7 +24,7 @@ struct ShapeData
     function ShapeData(json, dir::String)
         #todo yocto_sceneio.cpp line 946
         filename = joinpath(dir, json["uri"])
-        println("$(json["uri"])")
+        #         println("$(json["uri"])")
         if splitext(filename)[2] != ".ply"
             error("only ply files are supported")
         end
@@ -32,52 +32,57 @@ struct ShapeData
         positions = Array{Vec3f,1}(undef, 0)
         result = get_vec3f_array(ply, "vertex", ["x", "y", "z"], positions)
         #         println("positions $result $(length(positions))")
-        #         println("$(positions[1][1]) $(positions[1][2]) $(positions[1][3])")
-        #         println(
-        #             "$(positions[length(positions)][1]) $(positions[length(positions)][2]) $(positions[length(positions)][3])",
-        #         )
+        #         if length(positions) > 0
+        #             println("$(positions[1][1]) $(positions[1][2]) $(positions[1][3])")
+        #             println(
+        #                 "$(positions[length(positions)][1]) $(positions[length(positions)][2]) $(positions[length(positions)][3])",
+        #             )
+        #         end
         normals = Array{Vec3f,1}(undef, 0)
         result = get_vec3f_array(ply, "vertex", ["nx", "ny", "nz"], normals)
         #         println("normals $result $(length(normals))")
-        #         println("$(normals[1][1]) $(normals[1][2]) $(normals[1][3])")
-        #         println(
-        #             "$(normals[length(normals)][1]) $(normals[length(normals)][2]) $(normals[length(normals)][3])",
-        #         )
+        #         if length(normals) > 0
+        #             println("$(normals[1][1]) $(normals[1][2]) $(normals[1][3])")
+        #             println(
+        #                 "$(normals[length(normals)][1]) $(normals[length(normals)][2]) $(normals[length(normals)][3])",
+        #             )
+        #         end
         texcoords = Array{Vec2f,1}(undef, 0)
         result = get_tex_coords(ply, true, texcoords)
         #         println("texcoords $result $(length(texcoords))")
-        #         println("$(texcoords[1][1]) $(texcoords[1][2])")
-        #         println("$(texcoords[length(texcoords)][1]) $(texcoords[length(texcoords)][2])")
+        #         if length(texcoords) > 0
+        #             println("$(texcoords[1][1]) $(texcoords[1][2])")
+        #             println("$(texcoords[length(texcoords)][1]) $(texcoords[length(texcoords)][2])")
+        #         end
         #todo check in case there are more than 0
         colors = Array{Vec4f,1}(undef, 0)
         result = get_colors(ply, colors)
         #         println("colors $result $(length(colors))")
-        if length(colors) > 0
-            println("$(colors[1][1]) $(colors[1][2]) $(colors[1][3]) $(colors[1][4])")
-            println(
-                "$(colors[length(colors)][1]) $(colors[length(colors)][2]) $(colors[length(colors)][3]) $(colors[length(colors)][4])",
-            )
-        end
+        #         if length(colors) > 0
+        #             println("$(colors[1][1]) $(colors[1][2]) $(colors[1][3]) $(colors[1][4])")
+        #             println(
+        #                 "$(colors[length(colors)][1]) $(colors[length(colors)][2]) $(colors[length(colors)][3]) $(colors[length(colors)][4])",
+        #             )
+        #         end
         radius = Array{Float32,1}(undef, 0)
         result = get_f_array(ply, "vertex", "radius", radius)
         #         println("radius $result $(length(radius))")
-        if length(radius) > 0
-            println("$(radius[1])")
-            println("$(radius[length(radius)])")
-        end
+        #         if length(radius) > 0
+        #             println("$(radius[1])")
+        #             println("$(radius[length(radius)])")
+        #         end
         #todo check in case there are more than 0
         triangles = Array{Vec3i,1}(undef, 0)
         quads = Array{Vec4i,1}(undef, 0)
         result = get_faces(ply, "face", "vertex_indices", triangles, quads)
         #         println("triangles-quads $result $(length(triangles)) $(length(quads))")
-        #         println("$(json["uri"]) $(length(triangles)) $(length(quads))")
         #         if length(triangles) > 0
-        #             dump(triangles[1])
-        #             dump(triangles[length(triangles)])
+        #             println("$(triangles[1])")
+        #             println("$(triangles[length(triangles)])")
         #         end
         #         if length(quads) > 0
-        #             dump(quads[1])
-        #             dump(quads[length(quads)])
+        #             println("$(quads[1])")
+        #             println("$(quads[length(quads)])")
         #         end
         #get_lines yocto_modelio.h line 713
         new(
@@ -95,7 +100,7 @@ struct ShapeData
     end
 
     function get_vec4f_array(
-        ply,
+        ply::Ply,
         s_element::String,
         s_properties::Array{String,1},
         array::Array{Vec4f,1},
@@ -134,7 +139,7 @@ struct ShapeData
     end
 
     function get_vec3f_array(
-        ply,
+        ply::Ply,
         s_element::String,
         s_properties::Array{String,1},
         array::Array{Vec3f,1},
@@ -166,7 +171,7 @@ struct ShapeData
     end
 
     function get_vec2f_array(
-        ply,
+        ply::Ply,
         s_element::String,
         s_properties::Array{String,1},
         flip::Bool,
@@ -199,7 +204,7 @@ struct ShapeData
     end
 
     function get_f_array(
-        ply,
+        ply::Ply,
         s_element::String,
         s_property::String,
         array::Array{Float32,1},
@@ -216,7 +221,7 @@ struct ShapeData
         return false
     end
 
-    function get_tex_coords(ply, flip::Bool, array::Array{Vec2f,1})::Bool
+    function get_tex_coords(ply::Ply, flip::Bool, array::Array{Vec2f,1})::Bool
         for property in ply["vertex"].properties
             if property.name == "s"
                 return get_vec2f_array(ply, "vertex", ["s", "t"], flip, array)
@@ -226,7 +231,7 @@ struct ShapeData
         end
     end
 
-    function get_colors(ply, array::Array{Vec4f,1})::Bool
+    function get_colors(ply::Ply, array::Array{Vec4f,1})::Bool
         for property in ply["vertex"].properties
             if property.name == "alpha"
                 return get_vec4f_array(
@@ -248,14 +253,14 @@ struct ShapeData
         return true
     end
 
-    function has_quads(ply, element::String, s_property::String)::Bool
+    function has_quads(ply::Ply, element::String, s_property::String)::Bool
         for property in ply[element].properties
             if property.name == s_property
                 if !(property isa ListProperty)
                     return false
                 end
-                for size in property.start_inds
-                    if size == 5
+                for i in 2:length(property.start_inds)
+                    if property.start_inds[i] - property.start_inds[i - 1] == 4
                         return true
                     end
                 end
@@ -264,21 +269,106 @@ struct ShapeData
         return false
     end
 
+    function get_quads(ply::Ply, property::ListProperty, quads::Array{Vec4i,1})::Bool
+        sizehint!(quads, length(property.start_inds) - 1)
+        for i in 1:(length(property.start_inds) - 1)
+            index = property.start_inds[i]
+            size = property.start_inds[i + 1] - index
+            if size == 0
+                push!(quads, Vec4i(-1, -1, -1, -1))
+            elseif size == 1
+                push!(quads, Vec4i(property.data[index], -1, -1, -1))
+            elseif size == 2
+                push!(quads, Vec4i(property.data[index], property.data[index + 1], -1))
+            elseif size == 3
+                push!(
+                    quads,
+                    Vec4i(
+                        property.data[index],
+                        property.data[index + 1],
+                        property.data[index + 2],
+                        property.data[index + 2],
+                    ),
+                )
+            elseif size == 4
+                push!(
+                    quads,
+                    Vec4i(
+                        property.data[index],
+                        property.data[index + 1],
+                        property.data[index + 2],
+                        property.data[index + 3],
+                    ),
+                )
+            else
+                for item in 2:size
+                    push!(
+                        quads,
+                        Vec4i(
+                            property.data[index],
+                            property.data[index + item - 1],
+                            property.data[index + item],
+                            property.data[index + item],
+                        ),
+                    )
+                end
+            end
+        end
+        return true
+    end
+
+    function get_triangles(
+        ply::Ply,
+        property::ListProperty{UInt8,Int32},
+        triangles::Array{Vec3i,1},
+    )::Bool
+        sizehint!(triangles, length(property.start_inds) - 1)
+        for i in 1:(length(property.start_inds) - 1)
+            index = property.start_inds[i]
+            size = property.start_inds[i + 1] - index
+            if size == 0
+                push!(triangles, Vec3i(-1, -1, -1))
+            elseif size == 1
+                push!(triangles, Vec3i(property.data[index], -1, -1))
+            elseif size == 2
+                push!(triangles, Vec3i(property.data[index], property.data[index + 1], -1))
+            elseif size == 3
+                push!(
+                    triangles,
+                    Vec3i(
+                        property.data[index],
+                        property.data[index + 1],
+                        property.data[index + 2],
+                    ),
+                )
+            else
+                for item in 2:size
+                    push!(
+                        triangles,
+                        Vec3i(
+                            property.data[index],
+                            property.data[index + item - 1],
+                            property.data[index + item],
+                        ),
+                    )
+                end
+            end
+        end
+        return true
+    end
+
+    #TODO IMPORTANT maybe indexes in quads and triangles are to be incremented by 1 since this is julia
     function get_faces(
-        ply,
+        ply::Ply,
         element::String,
         property::String,
         triangles::Array{Vec3i,1},
         quads::Array{Vec4i,1},
     )::Bool
         if has_quads(ply, element, property)
-            #yocto_modelio.h line 651
-            println("has quads")
-            return false
+            return get_quads(ply, ply[element][property], quads)
         end
-        #yocto_modelio.h line 618
-        println("!has quads")
-        return false
+        return get_triangles(ply, ply[element][property], triangles)
     end
 end
 
