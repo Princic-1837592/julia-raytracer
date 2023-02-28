@@ -9,7 +9,13 @@ module SceneIO
 
 using JSON: parsefile
 using ..Scene:
-    SceneData, CameraData, TextureData, MaterialData, InstanceData, EnvironmentData
+    SceneData,
+    CameraData,
+    TextureData,
+    MaterialData,
+    InstanceData,
+    EnvironmentData,
+    load_texture
 using ..Shape: load_shape, ShapeData
 
 #todo check all return values
@@ -17,6 +23,7 @@ function load_scene(filename::String)::SceneData
     dir = dirname(filename)
     scene = SceneData()
     json = parsefile(filename::AbstractString; inttype = Int32)
+    println("    loading cameras...")
     if haskey(json, "cameras")
         cameras = json["cameras"]
         sizehint!(scene.cameras, length(cameras))
@@ -24,6 +31,7 @@ function load_scene(filename::String)::SceneData
             push!(scene.cameras, CameraData(camera))
         end
     end
+    println("    loading textures...")
     if haskey(json, "textures")
         textures = json["textures"]
         resize!(scene.textures, length(textures))
@@ -32,6 +40,7 @@ function load_scene(filename::String)::SceneData
             load_texture(joinpath(dir, textures[i]["uri"]), scene.textures[i])
         end
     end
+    println("    loading materials...")
     if haskey(json, "materials")
         materials = json["materials"]
         sizehint!(scene.materials, length(materials))
@@ -39,6 +48,7 @@ function load_scene(filename::String)::SceneData
             push!(scene.materials, MaterialData(material))
         end
     end
+    println("    loading shapes...")
     if haskey(json, "shapes")
         shapes = json["shapes"]
         resize!(scene.shapes, length(shapes))
@@ -48,6 +58,7 @@ function load_scene(filename::String)::SceneData
         end
     end
     #todo(?) subdivs
+    println("    loading instances...")
     if haskey(json, "instances")
         instances = json["instances"]
         sizehint!(scene.instances, length(instances))
@@ -55,6 +66,7 @@ function load_scene(filename::String)::SceneData
             push!(scene.instances, InstanceData(instance))
         end
     end
+    println("    loading environments...")
     if haskey(json, "environments")
         environments = json["environments"]
         sizehint!(scene.environments, length(environments))
