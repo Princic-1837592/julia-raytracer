@@ -301,7 +301,7 @@ struct ShapeData
                     ),
                 )
             else
-                for item in 2:size
+                for item in 2:(size-1)
                     push!(
                         quads,
                         Vec4i(
@@ -342,7 +342,7 @@ struct ShapeData
                     ),
                 )
             else
-                for item in 2:size
+                for item in 2:(size-1)
                     push!(
                         triangles,
                         Vec3i(
