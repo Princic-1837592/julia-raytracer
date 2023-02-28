@@ -11,8 +11,9 @@ module SceneIO
 using JSON: parsefile
 using ..Scene:
     SceneData, CameraData, TextureData, MaterialData, InstanceData, EnvironmentData
-using ..Shape: ShapeData
+using ..Shape: load_shape, ShapeData
 
+#todo check all return values
 function load_scene(filename::String)::SceneData
     dir = dirname(filename)
     scene = SceneData()
@@ -42,7 +43,8 @@ function load_scene(filename::String)::SceneData
         shapes = json["shapes"]
         resize!(scene.shapes, length(shapes))
         Threads.@threads for i in 1:length(shapes)
-            scene.shapes[i] = ShapeData(shapes[i], dir)
+            scene.shapes[i] = ShapeData()
+            load_shape(joinpath(dir, shapes[i]["uri"]), scene.shapes[i])
         end
     end
     #todo(?) subdivs
