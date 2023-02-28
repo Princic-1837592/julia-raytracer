@@ -31,9 +31,12 @@ struct ShapeData
         positions = get_vec3f_array(ply, "vertex", ["x", "y", "z"])
         normals = get_vec3f_array(ply, "vertex", ["nx", "ny", "nz"])
         textures = get_tex_coords(ply, true)
-        println(json["uri"])
-        dump(textures[1])
-        dump(textures[length(textures)])
+        colors = get_colors(ply)
+        println(json["uri"], length(colors))
+        if length(colors) > 0
+            dump(colors[1])
+            dump(colors[length(colors)])
+        end
         #get_lines yocto_modelio.h line 713
         new(
             Array{Int32,1}(),
@@ -158,6 +161,20 @@ struct ShapeData
                 return get_vec2f_array(ply, "vertex", ["u", "v"], flip)
             end
         end
+    end
+
+    function get_colors(ply)::Array{Vec4f,1}
+        for property in ply["vertex"].properties
+            if property.name == "alpha"
+                return get_vec4f_array(ply, "vertex", ["red", "green", "blue", "alpha"])
+            end
+        end
+        partial = get_vec3f_array(ply, "vertex", ["red", "green", "blue"])
+        result = Array{Vec4f,1}(undef, length(partial))
+        for i in 1:length(partial)
+            result[i] = Vec3f(partial[i][1], partial[i][2], partial[i][3], 1)
+        end
+        return result
     end
 end
 
