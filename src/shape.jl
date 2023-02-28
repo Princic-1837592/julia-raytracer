@@ -50,13 +50,22 @@ struct ShapeData
         #todo check in case there are more than 0
         colors = Array{Vec4f,1}(undef, 0)
         result = get_colors(ply, colors)
-        println("$(json["uri"]) $result $(length(colors))")
-        #                 println("$(colors[1][1]) $(colors[1][2]) $(colors[1][3]) $(colors[1][4])")
-        #                 println(
-        #                     "$(colors[length(colors)][1]) $(colors[length(colors)][2]) $(colors[length(colors)][3]) $(colors[length(colors)][4])",
-        #                 )
+        println("$(json["uri"]) colors $result $(length(colors))")
+        if length(colors) > 0
+            println("$(colors[1][1]) $(colors[1][2]) $(colors[1][3]) $(colors[1][4])")
+            println(
+                "$(colors[length(colors)][1]) $(colors[length(colors)][2]) $(colors[length(colors)][3]) $(colors[length(colors)][4])",
+            )
+        end
+        radius = Array{Float32,1}(undef, 0)
+        result = get_f_array(ply, "vertex", "radius", radius)
+        println("$(json["uri"]) radius $result $(length(radius))")
+        if length(radius) > 0
+            println("$(radius[1])")
+            println("$(radius[length(radius)])")
+        end
         #         #todo check in case there are more than 0
-        #         (triangles, quads) = get_radius(ply)
+        #         (triangles, quads) = get_faces(ply)
         #         println(json["uri"], " ", length(triangles), " ", length(quads))
         #         println("$(json["uri"]) $(length(triangles)) $(length(quads))")
         #         if length(triangles) > 0
