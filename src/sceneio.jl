@@ -74,6 +74,8 @@ function load_scene(filename::String)::SceneData
             push!(scene.environments, EnvironmentData(environment))
         end
     end
+    #todo add_missing_camera
+    #todo add_missing_radius
     return scene
 end
 
