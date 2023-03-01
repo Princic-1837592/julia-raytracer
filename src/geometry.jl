@@ -5,7 +5,6 @@ geometry:
 - Date: 2023-03-01
 =#
 
-#todo
 module Geometry
 
 using ..Math: Vec3f, Frame3f, transform_point
