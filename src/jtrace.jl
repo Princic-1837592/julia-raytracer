@@ -39,6 +39,7 @@ function main()
     end
     println("finding camera...")
     params["camera"] == find_camera(scene, params["camera"])
+    #todo(?) subdivs
     println("building bvh...")
     bvh = make_scene_bvh(scene)
     println("making lights...")
