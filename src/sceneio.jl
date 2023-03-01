@@ -88,8 +88,8 @@ function load_scene(filename::String, no_parallel::Bool)::SceneData
             push!(scene.environments, EnvironmentData(environment))
         end
     end
-    #todo add_missing_camera
-    #todo add_missing_radius
+    #add_missing_camera
+    #add_missing_radius
     return scene
 end
 
