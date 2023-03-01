@@ -41,7 +41,7 @@ function main()
     params["camera"] == find_camera(scene, params["camera"])
     #todo(?) subdivs
     println("building bvh...")
-    bvh = make_scene_bvh(scene)
+    bvh = make_scene_bvh(scene, params)
     println("making lights...")
     lights = make_trace_lights(scene, params)
     println("making state...")
