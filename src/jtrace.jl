@@ -20,14 +20,11 @@ using .Trace: make_trace_lights, make_trace_state, trace_samples
 
 function main()
     params = parse_cli_args()
-    if params["noparallel"]
-        println("noparallel is still not implemented")
-    end
     if params["highqualitybvh"]
         println("highqualitybvh is still not implemented")
     end
     println("loading scene...")
-    scene = load_scene(params["scene"])
+    scene = load_scene(params["scene"], params["noparallel"])
     #     dump(scene)
     if params["addsky"]
         println("adding sky...")
@@ -41,7 +38,7 @@ function main()
     params["camera"] == find_camera(scene, params["camera"])
     #todo(?) subdivs
     println("building bvh...")
-    bvh = make_scene_bvh(scene, params)
+    bvh = make_scene_bvh(scene, params["highqualitybvh"], params["noparallel"])
     println("making lights...")
     lights = make_trace_lights(scene, params)
     println("making state...")
