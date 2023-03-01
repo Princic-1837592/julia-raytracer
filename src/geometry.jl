@@ -8,7 +8,7 @@ geometry:
 #todo
 module Geometry
 
-using ..Math: Vec3f
+using ..Math: Vec3f, Frame3f, transform_point
 
 struct Bbox3f
     min::Vec3f
@@ -34,6 +34,27 @@ triangle_bounds(p1::Vec3f, p2::Vec3f, p3::Vec3f)::Bbox3f =
 quad_bounds(p1::Vec3f, p2::Vec3f, p3::Vec3f, p4::Vec3f)::Bbox3f =
     Bbox3f(min(p1, p2, p3, p4), max(p1, p2, p3, p4))
 
-quad_bounds(p1::Vec3f, p2::Vec3f, p3::Vec3f, p4::Vec3f)::Bbox3f = Bbox3f(min(p1, p2, p3, p4), max(p1, p2, p3, p4))
+#yocto_geometry.cpp 455
+function transform_bbox(frame::Frame3f, bbox::Bbox3f)::Bbox3f
+    corners = [
+        Vec3f(bbox.min[1], bbox.min[2], bbox.min[3]),
+        Vec3f(bbox.min[1], bbox.min[2], bbox.max[3]),
+        Vec3f(bbox.min[1], bbox.max[2], bbox.min[3]),
+        Vec3f(bbox.min[1], bbox.max[2], bbox.max[3]),
+        Vec3f(bbox.max[1], bbox.min[2], bbox.min[3]),
+        Vec3f(bbox.max[1], bbox.min[2], bbox.max[3]),
+        Vec3f(bbox.max[1], bbox.max[2], bbox.min[3]),
+        Vec3f(bbox.max[1], bbox.max[2], bbox.max[3]),
+    ]
+    xformed = Bbox3f()
+    for corner in corners
+        xformed = merge_bbox3f_vec3f(xformed, transform_point(frame, corner))
+    end
+    return xformed
+end
+
+#yocto_geometry.cpp 410
+merge_bbox3f_vec3f(bbox::Bbox3f, vector::Vec3f)::Bbox3f =
+    Bbox3f(min(bbox.min, vector), max(bbox.max, vector))
 
 end
