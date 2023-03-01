@@ -56,4 +56,7 @@ end
 merge_bbox3f_vec3f(bbox::Bbox3f, vector::Vec3f)::Bbox3f =
     Bbox3f(min(bbox.min, vector), max(bbox.max, vector))
 
+merge_bbox3f(bbox1::Bbox3f, bbox2::Bbox3f)::Bbox3f =
+    Bbox3f(min(bbox1.min, bbox2.min), max(bbox1.max, bbox2.max))
+
 end
