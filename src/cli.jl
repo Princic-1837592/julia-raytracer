@@ -46,10 +46,14 @@ cli_parser = ArgParseSettings()
     help = "enable denoiser"
     arg_type = Bool
     default = false
-    #     "--noparallel"
-    #     help = "disable threading"
-    #     arg_type = Bool
-    #     default = false
+    "--noparallel"
+    help = "disable threading"
+    arg_type = Bool
+    default = false
+    "--highqualitybvh"
+    help = "enable high quality bvh"
+    arg_type = Bool
+    default = false
 end
 parse_cli_args() = parse_args(cli_parser)
 end
