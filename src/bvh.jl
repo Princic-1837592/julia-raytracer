@@ -140,16 +140,13 @@ function make_bvh(bboxes::Array{Bbox3f,1}, high_quality::Bool)::BvhTree
         bvh.primitives[i] = i
     end
     centers = Array{Vec3f,1}(undef, length(bboxes))
-    println("length(bboxes) = ", length(bboxes))
     for i in 1:length(bboxes)
         centers[i] = center(bboxes[i])
     end
     stack = Stack{Vec3i}()
     push!(stack, Vec3i(1, 1, length(bboxes)))
     push!(bvh.nodes, BvhNode())
-    cycles = 0
     while length(stack) != 0
-        cycles += 1
         node_id, left, right = pop!(stack)
         node = bvh.nodes[node_id]
         for i in left:right
@@ -177,7 +174,6 @@ function make_bvh(bboxes::Array{Bbox3f,1}, high_quality::Bool)::BvhTree
             node.num = right - left + 1
         end
     end
-    println("cycles = ", cycles)
     bvh
 end
 
