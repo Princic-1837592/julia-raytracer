@@ -27,3 +27,4 @@ formatter.jl
 
 .vscode
 tests
+test.jl
