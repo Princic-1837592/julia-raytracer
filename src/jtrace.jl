@@ -7,9 +7,9 @@ ytrace:
 
 include("math.jl")
 include("shape.jl")
-include("bvh.jl")
 include("cli.jl")
 include("scene.jl")
+include("bvh.jl")
 include("sceneio.jl")
 include("trace.jl")
 using .Bvh: make_scene_bvh
