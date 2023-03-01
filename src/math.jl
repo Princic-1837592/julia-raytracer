@@ -40,6 +40,6 @@ Frame3f() = Frame3f(Vec3f(), Vec3f(), Vec3f(), Vec3f())
 
 #yocto_math.h 2233
 transform_point(frame::Frame3f, point::Vec3f)::Vec3f =
-    ((frame.x) .* point[1] + (frame.y) .* point[2] + (frame.z) .* point[3]) .+ frame.o
+    ((frame[1]) .* point[1] + (frame[2]) .* point[2] + (frame[3]) .* point[3]) .+ frame[4]
 
 end
