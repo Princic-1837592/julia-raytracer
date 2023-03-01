@@ -10,6 +10,7 @@ module Scene
 using StaticArrays: SVector
 using ..Math: Frame3f, Vec3f, Vec4f, Vec4b, Vec4i
 using ..Shape: ShapeData
+# using FileIO: load
 
 const invalid_id = -1
 
@@ -21,6 +22,7 @@ struct CameraData
     aspect       :: Float32
     focus        :: Float32
     aperture     :: Float32
+
     function CameraData(json)
         frame = Frame3f(Float32.(get(json, "frame", Vector())))
         orthographic = get(json, "orthographic", false)
@@ -38,6 +40,7 @@ struct InstanceData
     frame    :: Frame3f
     shape    :: Int32
     material :: Int32
+
     function InstanceData(json)
         frame = Frame3f(Float32.(get(json, "frame", Vector())))
         shape = get(json, "shape", invalid_id - 1) + 1
@@ -51,6 +54,7 @@ struct EnvironmentData
     frame        :: Frame3f
     emission     :: Vec3f
     emission_tex :: Int32
+
     function EnvironmentData(json)
         frame = Frame3f(Float32.(get(json, "frame", Vector())))
         emission = get(json, "emission", Vec3f())
@@ -60,16 +64,43 @@ struct EnvironmentData
     end
 end
 
-struct TextureData
+mutable struct TextureData
     width   :: Int32
     height  :: Int32
     linear  :: Bool
     pixelsf :: Array{Vec4f,1}
     pixelsb :: Array{Vec4b,1}
-    function TextureData(json, dir::String)
-        #todo yocto_sceneio.cpp line 1734
-        new(0, 0, false, Array{Vec4f,1}(), Array{Vec4b,1}())
-    end
+
+    TextureData() = new()
+end
+
+function load_texture(path::String, texture::TextureData)::Bool
+    return true
+#     extension = lowercase(splitext(path)[2])
+#     if extension == ".hdr"
+#         #todo
+#     elseif extension == ".png"
+#         #         bytes = Array{UInt8}(undef, filesize(path))
+#         #         read!(path, bytes)
+#         #         println("bytes: ", length(bytes))
+#         img = load(path)
+#         println(length(img))
+#         (texture.width, texture.height) = size(img)
+#         println("width: $(texture.width) height: $(texture.height)")
+#         #         println("$(img[0]) $(img[0].r) $(img[0].g) $(img[0].b) $(img[0].alpha)")
+#         #         println(img[0, 0])
+#         texture.pixelsb = Array{Vec4b,1}(undef, texture.width * texture.height)
+#         for i in 1:(texture.width)
+#             for j in 1:(texture.height)
+#                 texture.pixelsb[i + (j - 1) * texture.width] =
+#                     Vec4b(img[i].r, img[i].g, img[i].b, img[i].alpha)
+#             end
+#         end
+#         return true
+#     else
+#         println("unknown texture format: ", extension)
+#     end
+#     return false
 end
 
 @enum MaterialType begin
@@ -109,6 +140,7 @@ struct MaterialData
     roughness_tex  :: Int32
     scattering_tex :: Int32
     normal_tex     :: Int32
+
     function MaterialData(json)
         type = get(MaterialTypes, get(json, "type", "matte"), matte)
         emission = get(json, "emission", Vec3f())
