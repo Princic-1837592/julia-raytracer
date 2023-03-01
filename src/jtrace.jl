@@ -20,6 +20,12 @@ using .Trace: make_trace_lights, make_trace_state, trace_samples
 
 function main()
     params = parse_cli_args()
+    if params["noparallel"]
+        println("noparallel is still not implemented")
+    end
+    if params["highqualitybvh"]
+        println("highqualitybvh is still not implemented")
+    end
     println("loading scene...")
     scene = load_scene(params["scene"])
     #     dump(scene)
