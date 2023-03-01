@@ -48,6 +48,12 @@ function load_shape(path::String, shape::ShapeData)::Bool
     result = get_lines(ply, "line", "vertex_indices", shape.lines)
     shape.points = Array{Int32,1}(undef, 0)
     result = get_list_values(ply, "point", "vertex_indices", shape.points)
+    #todo-check if correct. used to index @bvh:78, maybe increasing is needed here
+    for collection in [shape.point, shape.lines, shape.triangles, shape.quads]
+        for i in 1:length(collection)
+            collection[i] += 1
+        end
+    end
 
     return length(shape.points) != 0 ||
            length(shape.lines) != 0 ||
@@ -362,7 +368,6 @@ function get_vec2i_array(property::ListProperty, lines::Array{Vec2i,1})::Bool
     return true
 end
 
-#TODO IMPORTANT maybe indexes in quads and triangles are to be incremented by 1 since this is julia
 function get_faces(
     ply::Ply,
     element::String,
