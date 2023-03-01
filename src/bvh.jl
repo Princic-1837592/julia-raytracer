@@ -9,16 +9,7 @@ module Bvh
 
 using ..Scene: SceneData, ShapeData
 using ..Math: Vec3f, Frame3f
-
-struct Bbox3f
-    min::Vec3f
-    max::Vec3f
-
-    Bbox3f() = new(
-        Vec3f(typemax(Float32), typemax(Float32), typemax(Float32)),
-        Vec3f(typemin(Float32), typemin(Float32), typemin(Float32)),
-    )
-end
+using ..Geometry: point_bounds, line_bounds, triangle_bounds, quad_bounds, Bbox3f
 
 struct BvhNode
     bbox     :: Bbox3f
@@ -80,36 +71,47 @@ function make_shape_bvh(shape::ShapeData, high_quality::Bool)::ShapeBvh
     bboxes = if length(shape.points) > 0
         result = Array{Bbox3f,1}(undef, length(shape.points))
         for i in 1:length(shape.points)
-            #       auto& point = shape.points[idx];
-            #       result[idx] = point_bounds(shape.positions[point], shape.radius[point]);
+            point = shape.points[i]
+            result[i] = point_bounds(shape.positions[point], shape.radius[point])
         end
         result
     elseif length(shape.lines) > 0
         result = Array{Bbox3f,1}(undef, length(shape.lines))
         for i in 1:length(shape.lines)
-            #       auto& line  = shape.lines[idx];
-            #       result[idx] = line_bounds(shape.positions[line.x],
-            #           shape.positions[line.y], shape.radius[line.x], shape.radius[line.y]);
+            line = shape.lines[i]
+            result[i] = line_bounds(
+                shape.positions[line[1]],
+                shape.positions[line[2]],
+                shape.radius[line[1]],
+                shape.radius[line[2]],
+            )
         end
         result
     elseif length(shape.triangles) > 0
         result = Array{Bbox3f,1}(undef, length(shape.triangles))
         for i in 1:length(shape.triangles)
-            #       auto& triangle = shape.triangles[idx];
-            #       result[idx]    = triangle_bounds(shape.positions[triangle.x],
-            #              shape.positions[triangle.y], shape.positions[triangle.z]);
+            triangle = shape.triangles[i]
+            result[i] = triangle_bounds(
+                shape.positions[triangle[1]],
+                shape.positions[triangle[2]],
+                shape.positions[triangle[3]],
+            )
         end
         result
     elseif length(shape.quads) > 0
         result = Array{Bbox3f,1}(undef, length(shape.quads))
         for i in 1:length(shape.quads)
-            #       auto& quad  = shape.quads[idx];
-            #       result[idx] = quad_bounds(shape.positions[quad.x],
-            #           shape.positions[quad.y], shape.positions[quad.z],
-            #           shape.positions[quad.w]);
+            quad = shape.quads[i]
+            result[i] = quad_bounds(
+                shape.positions[quad[1]],
+                shape.positions[quad[2]],
+                shape.positions[quad[3]],
+                shape.positions[quad[4]],
+            )
         end
         result
     end
+
     sbvh.bvh = make_bvh(bboxes, high_quality)
     sbvh
 end
