@@ -8,10 +8,23 @@ bvh:
 module Bvh
 
 using ..Scene: SceneData, ShapeData
-using ..Math: Vec3f, Frame3f
-using ..Geometry: point_bounds, line_bounds, triangle_bounds, quad_bounds, Bbox3f
+using ..Math: Vec3f, Frame3f, Vec3i
+using ..Geometry:
+    point_bounds,
+    line_bounds,
+    triangle_bounds,
+    quad_bounds,
+    Bbox3f,
+    transform_bbox,
+    merge_bbox3f,
+    merge_bbox3f_vec3f,
+    center
+using DataStructures: Stack
+using Printf: @printf
 
-struct BvhNode
+const BVH_MAX_PRIMS = 4
+
+mutable struct BvhNode
     bbox     :: Bbox3f
     start    :: Int32
     num      :: Int16
@@ -41,6 +54,7 @@ mutable struct SceneBvh
     SceneBvh() = new(BvhTree(), ShapeBvh[])
 end
 
+#yocto_bvh.cpp 365
 function make_scene_bvh(scene::SceneData, high_quality::Bool, no_parallel::Bool)::SceneBvh
     sbvh = SceneBvh()
     resize!(sbvh.shapes, length(scene.shapes))
@@ -59,13 +73,14 @@ function make_scene_bvh(scene::SceneData, high_quality::Bool, no_parallel::Bool)
         bboxes[i] = if length(sbvh.shapes[instance.shape].bvh.nodes) == 0
             Bbox3f()
         else
-            transform_bbox(instance.frame, sbvh.shapes[instance.shape].bvh.nodes[0].bbox)
+            transform_bbox(instance.frame, sbvh.shapes[instance.shape].bvh.nodes[1].bbox)
         end
     end
     sbvh.bvh = make_bvh(bboxes, high_quality)
     sbvh
 end
 
+#yocto_bvh.cpp 322
 function make_shape_bvh(shape::ShapeData, high_quality::Bool)::ShapeBvh
     sbvh = ShapeBvh()
     bboxes = if length(shape.points) > 0
@@ -116,12 +131,112 @@ function make_shape_bvh(shape::ShapeData, high_quality::Bool)::ShapeBvh
     sbvh
 end
 
-function transform_bbox(frame::Frame3f, bbox::Bbox3f)::Bbox3f
-    Bbox3f()
+#yocto_bvh.cpp 239
+function make_bvh(bboxes::Array{Bbox3f,1}, high_quality::Bool)::BvhTree
+    bvh = BvhTree()
+    sizehint!(bvh.nodes, length(bboxes) * 2)
+    resize!(bvh.primitives, length(bboxes))
+    for i in 1:length(bboxes)
+        bvh.primitives[i] = i
+    end
+    centers = Array{Vec3f,1}(undef, length(bboxes))
+    println("length(bboxes) = ", length(bboxes))
+    for i in 1:length(bboxes)
+        centers[i] = center(bboxes[i])
+    end
+    stack = Stack{Vec3i}()
+    push!(stack, Vec3i(1, 1, length(bboxes)))
+    push!(bvh.nodes, BvhNode())
+    cycles = 0
+    while length(stack) != 0
+        cycles += 1
+        node_id, left, right = pop!(stack)
+        node = bvh.nodes[node_id]
+        for i in left:right
+            node.bbox = merge_bbox3f(node.bbox, bboxes[bvh.primitives[i]])
+        end
+        if right - left + 1 > BVH_MAX_PRIMS
+            mid, axis = if high_quality
+                #todo method does not exist yet
+                #                 split_sah(centers, bboxes, left, right)
+                (0, 0)
+            else
+                split_middle(bvh.primitives, bboxes, centers, left, right)
+            end
+            node.internal = true
+            node.axis = axis
+            node.num = 2
+            node.start = length(bvh.nodes) + 1
+            push!(bvh.nodes, BvhNode())
+            push!(bvh.nodes, BvhNode())
+            push!(stack, Vec3i(node.start, left, mid))
+            push!(stack, Vec3i(node.start + 1, mid + 1, right))
+        else
+            node.internal = false
+            node.start = left
+            node.num = right - left + 1
+        end
+    end
+    println("cycles = ", cycles)
+    bvh
 end
 
-function make_bvh(bboxes::Array{Bbox3f,1}, high_quality::Bool)::BvhTree
-    BvhTree()
+function split_middle(
+    primitives::Array{Int32,1},
+    bboxes::Array{Bbox3f,1},
+    centers::Array{Vec3f,1},
+    left::Int32,
+    right::Int32,
+)::Tuple{Int32,Int8}
+    cbbox = Bbox3f()
+    for i in left:right
+        cbbox = merge_bbox3f_vec3f(cbbox, centers[primitives[i]])
+    end
+    csize = cbbox.max - cbbox.min
+    if csize == Vec3f(0, 0, 0)
+        return div((left + right + 1), 2), 0
+    end
+    axis = 0
+    if csize[1] >= csize[2] && csize[1] >= csize[3]
+        axis = 1
+    end
+    if csize[2] >= csize[1] && csize[2] >= csize[3]
+        axis = 2
+    end
+    if csize[3] >= csize[1] && csize[3] >= csize[2]
+        axis = 3
+    end
+    split = center(cbbox)[axis]
+    middle =
+        partition((primitive) -> centers[primitive][axis] < split, primitives, left, right)
+    if middle < left
+        middle = left
+    end
+    if middle > right
+        middle = right
+    end
+    if middle == left || middle == right
+        return (div(left + right + 1, 2), axis)
+    end
+    return (middle, axis)
+end
+
+function partition(f::Function, a::Array{T,1}, start::Int32, stop::Int32)::Int32 where {T}
+    i = start
+    j = stop
+    while true
+        while i <= stop && f(a[i])
+            i += 1
+        end
+        while j >= start && !f(a[j])
+            j -= 1
+        end
+        if i >= j
+            break
+        end
+        a[i], a[j] = a[j], a[i]
+    end
+    j
 end
 
 end
