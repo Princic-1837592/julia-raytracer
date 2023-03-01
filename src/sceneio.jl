@@ -19,7 +19,7 @@ using ..Scene:
 using ..Shape: load_shape, ShapeData
 
 #todo check all return values
-function load_scene(filename::String)::SceneData
+function load_scene(filename::String, no_parallel::Bool)::SceneData
     dir = dirname(filename)
     scene = SceneData()
     json = parsefile(filename::AbstractString; inttype = Int32)
@@ -35,9 +35,16 @@ function load_scene(filename::String)::SceneData
     if haskey(json, "textures")
         textures = json["textures"]
         resize!(scene.textures, length(textures))
-        Threads.@threads for i in 1:length(textures)
-            scene.textures[i] = TextureData()
-            load_texture(joinpath(dir, textures[i]["uri"]), scene.textures[i])
+        if no_parallel
+            for i in 1:length(textures)
+                scene.textures[i] = TextureData()
+                load_texture(joinpath(dir, textures[i]["uri"]), scene.textures[i])
+            end
+        else
+            Threads.@threads for i in 1:length(textures)
+                scene.textures[i] = TextureData()
+                load_texture(joinpath(dir, textures[i]["uri"]), scene.textures[i])
+            end
         end
     end
     println("    loading materials...")
@@ -52,9 +59,16 @@ function load_scene(filename::String)::SceneData
     if haskey(json, "shapes")
         shapes = json["shapes"]
         resize!(scene.shapes, length(shapes))
-        Threads.@threads for i in 1:length(shapes)
-            scene.shapes[i] = ShapeData()
-            load_shape(joinpath(dir, shapes[i]["uri"]), scene.shapes[i])
+        if no_parallel
+            for i in 1:length(shapes)
+                scene.shapes[i] = ShapeData()
+                load_shape(joinpath(dir, shapes[i]["uri"]), scene.shapes[i])
+            end
+        else
+            Threads.@threads for i in 1:length(shapes)
+                scene.shapes[i] = ShapeData()
+                load_shape(joinpath(dir, shapes[i]["uri"]), scene.shapes[i])
+            end
         end
     end
     #todo(?) subdivs
