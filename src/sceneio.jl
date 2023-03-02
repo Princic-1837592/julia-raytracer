@@ -18,6 +18,7 @@ using ..Scene:
     load_texture
 using ..Shape: load_shape, ShapeData
 using ..Image: ImageData
+using Images: save
 
 #todo check all return values
 function load_scene(filename::String, no_parallel::Bool)::SceneData

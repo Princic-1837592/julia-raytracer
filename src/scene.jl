@@ -58,7 +58,7 @@ struct EnvironmentData
     emission_tex :: Int32
 
     function EnvironmentData(json)
-        frame = Frame3f(Float32.(get(json, "frame", Vector())))
+        frame = Frame3f(Float32.(get(json, "frame", Array{Float32,1}(undef, 0))))
         emission = get(json, "emission", Vec3f())
         emission_tex = get(json, "emission_tex", invalid_id - 1) + 1
         #todo lookat
