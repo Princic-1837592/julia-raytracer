@@ -6,6 +6,7 @@ ytrace:
 =#
 
 include("math.jl")
+include("image.jl")
 include("shape.jl")
 include("cli.jl")
 include("scene.jl")
@@ -16,8 +17,8 @@ include("trace.jl")
 using .Bvh: make_scene_bvh, verify_bvh
 using .Cli: parse_cli_args
 using .Scene: add_sky, find_camera
-using .SceneIO: load_scene, add_environment
-using .Trace: make_trace_lights, make_trace_state, trace_samples
+using .SceneIO: load_scene, add_environment, save_image
+using .Trace: make_trace_lights, make_trace_state, trace_samples, get_image
 
 function main()
     params = parse_cli_args()
@@ -51,14 +52,12 @@ function main()
     state = make_trace_state(scene, params)
     println("tracing samples...")
     for _sample in 1:params["samples"]
-        sample_time = time_ns()
         trace_samples(state, scene, bvh, lights, params)
-        #         println("rander sample $(state.samples)/$(params.samples)")
-        #         sleep(rand(Float16))
-        #         println("rander sample $((time_ns() - sample_time) / 1_000_000_000)s")
+        println("rander sample $(state.samples)/$(params["samples"])")
     end
     println("saving image...")
-    #save image todo
+    image = get_image(state)
+    save_image(params["output"], image)
 end
 
 main()
