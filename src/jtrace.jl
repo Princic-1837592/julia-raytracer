@@ -40,7 +40,11 @@ function main()
     #todo(?) subdivs
     println("building bvh...")
     bvh = make_scene_bvh(scene, params["highqualitybvh"], params["noparallel"])
-    println(verify_bvh(bvh))
+    println(if verify_bvh(bvh)
+        "bvh is valid"
+    else
+        "bvh is invalid"
+    end)
     println("making lights...")
     lights = make_trace_lights(scene, params)
     println("making state...")
