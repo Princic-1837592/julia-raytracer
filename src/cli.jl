@@ -54,6 +54,14 @@ cli_parser = ArgParseSettings()
     help = "enable high quality bvh"
     arg_type = Bool
     default = false
+    "--envhidden"
+    help = "hide environment"
+    arg_type = Bool
+    default = false
+    "--tentfilter"
+    help = "filter image"
+    arg_type = Bool
+    default = false
 end
 parse_cli_args() = parse_args(cli_parser)
 end

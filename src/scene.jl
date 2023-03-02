@@ -8,8 +8,18 @@ scene:
 module Scene
 
 using StaticArrays: SVector
-using ..Math: Frame3f, Vec3f, Vec4f, Vec4b, Vec4i
+using ..Math:
+    Frame3f,
+    Vec2f,
+    Vec3f,
+    Vec4f,
+    Vec4b,
+    Vec4i,
+    normalize,
+    transform_point,
+    transform_direction
 using ..Shape: ShapeData
+using ..Geometry: Ray3f
 # using FileIO: load
 
 const invalid_id = -1
@@ -227,6 +237,44 @@ function find_camera(scene::SceneData, name::String)::Int32
         end
     end
     1
+end
+
+function eval_camera(camera::CameraData, image_uv::Vec2f, lens_uv::Vec2f)::Ray3f
+    film = if camera.aspect >= 1
+        Vec2f(camera.film, camera.film / camera.aspect)
+    else
+        Vec2f(camera.film * camera.aspect, camera.film)
+    end
+    if !camera.orthographic
+        q = Vec3f(film[1] * (0.5 - image_uv[1]), film[2] * (image_uv[2] - 0.5), camera.lens)
+        #ray direction through the lens center
+        dc = -normalize(q)
+        #point on the lens
+        e = Vec3f(lens_uv[1] * camera.aperture / 2, lens_uv[2] * camera.aperture / 2, 0)
+        #point on the focus plane
+        p = dc * camera.focus / abs(dc[3])
+        #correct ray direction to account for camera focusing
+        d = normalize(p - e)
+        #done
+        Ray3f(transform_point(camera.frame, e), transform_direction(camera.frame, d))
+    else
+        scale = 1 / camera.lens
+        q = Vec3f(
+            film[1] * (0.5 - image_uv[1]) * scale,
+            film[2] * (image_uv[2] - 0.5) * scale,
+            camera.lens,
+        )
+        #point on the lens
+        e =
+            Vec3f(-q[1], -q[2], 0) +
+            Vec3f(lens_uv[1] * camera.aperture / 2, lens_uv[2] * camera.aperture / 2, 0)
+        #point on the focus plane
+        p = Vec3f(-q[1], -q[2], -camera.focus)
+        #correct ray direction to account for camera focusing
+        d = normalize(p - e)
+        #done
+        Ray3f(transform_point(camera.frame, e), transform_direction(camera.frame, d))
+    end
 end
 
 function add_sky(scene) end

@@ -6,11 +6,12 @@ ytrace:
 =#
 
 include("math.jl")
+include("sampling.jl")
+include("geometry.jl")
 include("image.jl")
 include("shape.jl")
 include("cli.jl")
 include("scene.jl")
-include("geometry.jl")
 include("bvh.jl")
 include("sceneio.jl")
 include("trace.jl")

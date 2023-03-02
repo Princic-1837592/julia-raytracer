@@ -8,6 +8,8 @@ math:
 module Math
 using StaticArrays: SVector
 
+const pif = Float32(pi)
+
 const Vec2i = SVector{2,Int32}
 Vec2i() = Vec2i(0, 0)
 const Vec3i = SVector{3,Int32}
@@ -42,8 +44,25 @@ function Frame3f(array::AbstractVector{Float32})
 end
 Frame3f() = Frame3f(Vec3f(), Vec3f(), Vec3f(), Vec3f())
 
+dot(a, b) = sum(a .* b)
+
+function normalize(a::Vec3f)
+    l = sqrt(dot(a, a))
+    if l != 0
+        return a / l
+    else
+        return a
+    end
+end
+
 #yocto_math.h 2233
 transform_point(frame::Frame3f, point::Vec3f)::Vec3f =
     ((frame[1]) .* point[1] + (frame[2]) .* point[2] + (frame[3]) .* point[3]) .+ frame[4]
+
+transform_vector(a::Frame3f, b::Vec3f)::Vec3f = a[1] * b[1] + a[2] * b[2] + a[3] * b[3]
+
+transform_direction(a::Frame3f, b::Vec3f)::Vec3f = normalize(transform_vector(a, b))
+
+lerp(a::Vec4f, b::Vec4f, u::Float32) = a * (1 - u) + b * u
 
 end

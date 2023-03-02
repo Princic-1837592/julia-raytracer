@@ -18,7 +18,8 @@ using ..Geometry:
     transform_bbox,
     merge_bbox3f,
     merge_bbox3f_vec3f,
-    center
+    center,
+    Ray3f
 using DataStructures: Stack
 using Printf: @printf
 
@@ -227,6 +228,18 @@ function partition(f::Function, a::Array{T,1}, start::Int32, stop::Int32)::Int32
         a[i], a[j] = a[j], a[i]
     end
     j
+end
+
+function intersect_scene_bvh(sbvh::SceneBvh, scene::Scene, ray::Ray3f, find_any::Bool)::Bool
+    bvh = sbvh.bvh
+    if length(bvh.nodes) == 0
+        return false
+    end
+    stack = Array{Int32,1}(undef, 128)
+    fill!(stack, 0)
+    node_cur=1
+    stack[node_cur] = 1
+    node_cur += 1
 end
 
 function verify_bvh(bvh)::Bool

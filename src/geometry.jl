@@ -21,6 +21,18 @@ struct Bbox3f
     Bbox3f(min::Vec3f, max::Vec3f) = new(min, max)
 end
 
+const ray_eps::Float32 = 1e-4
+
+struct Ray3f
+    o    :: Vec3f
+    d    :: Vec3f
+    tmin :: Float32
+    tmax :: Float32
+
+    Ray3f() = new(Vec3f(0, 0, 0), Vec3f(0, 0, 1), ray_eps, typemax(Float32))
+    Ray3f(o::Vec3f, d::Vec3f) = new(o, d, ray_eps, typemax(Float32))
+end
+
 #todo-check if correct to use min. and max. here
 point_bounds(p::Vec3f, r::Float32)::Bbox3f =
     Bbox3f(min.(p .- r, p .+ r), max.(p .- r, p .+ r))
