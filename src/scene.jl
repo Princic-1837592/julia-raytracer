@@ -22,6 +22,7 @@ struct CameraData
     aspect       :: Float32
     focus        :: Float32
     aperture     :: Float32
+    name         :: String
 
     function CameraData(json)
         frame = Frame3f(Float32.(get(json, "frame", Vector())))
@@ -31,8 +32,9 @@ struct CameraData
         aspect = get(json, "aspect", 1.5)
         focus = get(json, "focus", 10000)
         aperture = get(json, "aperture", 0)
+        name = get(json, "name", "")
         #todo lookat
-        new(frame, orthographic, lens, film, aspect, focus, aperture)
+        new(frame, orthographic, lens, film, aspect, focus, aperture, name)
     end
 end
 
@@ -213,7 +215,19 @@ struct SceneData
     )
 end
 
-function find_camera(scene, params) end
+function find_camera(scene::SceneData, name::String)::Int32
+    if length(scene.cameras) == 0
+        return invalid_id
+    end
+    for name in [name, "default", "camera", "camera0", "camera1"]
+        for i in 1:length(scene.cameras)
+            if scene.cameras[i].name == name
+                return i
+            end
+        end
+    end
+    1
+end
 
 function add_sky(scene) end
 
