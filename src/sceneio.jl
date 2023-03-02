@@ -18,7 +18,7 @@ using ..Scene:
     load_texture
 using ..Shape: load_shape, ShapeData
 using ..Image: ImageData
-using Images: save
+using Images: save, colorview, RGBA
 
 #todo check all return values
 function load_scene(filename::String, no_parallel::Bool)::SceneData
@@ -97,6 +97,19 @@ end
 
 function add_environment(scene, params) end
 
-function save_image(filename::String, image::ImageData) end
+function save_image(filename::String, image::ImageData)
+    ext = lowercase(splitext(filename)[2])
+    if ext != ".png"
+        error("$ext is not supported")
+    end
+    matrix = Array{RGBA{Float32},2}(undef, image.height, image.width)
+    for i in 1:(image.height)
+        for j in 1:(image.width)
+            vec4f = image.data[(i - 1) * image.width + j]
+            matrix[i, j] = RGBA(vec4f[1], vec4f[2], vec4f[3], vec4f[4])
+        end
+    end
+    save(filename, matrix)
+end
 
 end
