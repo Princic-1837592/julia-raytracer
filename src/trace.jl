@@ -10,6 +10,7 @@ module Trace
 using ..Scene: SceneData
 using ..Math: Vec3f, Vec4f
 using ..Bvh: SceneBvh
+using ..Image: make_image, ImageData
 
 struct TraceState
     width   :: Int32
@@ -55,5 +56,21 @@ function make_trace_state(scene::SceneData, params)::TraceState
 end
 
 function trace_samples(state::TraceState, scene::SceneData, bvh::SceneBvh, lights, params) end
+
+function get_image(state::TraceState)
+    image = make_image(state.width, state.height, true)
+    get_image(image, state)
+    image
+end
+
+function get_image(image::ImageData, state::TraceState)
+    image.width = state.width
+    image.height = state.height
+    if length(state.denoised) == 0
+        image.pixels = state.image
+    else
+        image.pixels = state.denoised
+    end
+end
 
 end
