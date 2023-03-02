@@ -26,7 +26,7 @@ mutable struct ShapeData
 end
 
 function load_shape(path::String, shape::ShapeData)::Bool
-    if splitext(path)[2] != ".ply"
+    if lowercase(splitext(path)[2]) != ".ply"
         return false
     end
     ply = load_ply(path)
