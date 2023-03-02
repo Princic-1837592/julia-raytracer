@@ -111,32 +111,6 @@ function make_shape_bvh(shape::ShapeData, high_quality::Bool)::ShapeBvh
                 shape.positions[triangle[2]],
                 shape.positions[triangle[3]],
             )
-            #             if i % 10000 == 1
-            #                 @printf(
-            #                     "%.5f %.5f %.5f\n%.5f %.5f %.5f\n%.5f %.5f %.5f\n",
-            #                     shape.positions[triangle[1]][1],
-            #                     shape.positions[triangle[1]][2],
-            #                     shape.positions[triangle[1]][3],
-            #                     shape.positions[triangle[2]][1],
-            #                     shape.positions[triangle[2]][2],
-            #                     shape.positions[triangle[2]][3],
-            #                     shape.positions[triangle[3]][1],
-            #                     shape.positions[triangle[3]][2],
-            #                     shape.positions[triangle[3]][3]
-            #                 )
-            #                 @printf(
-            #                     "%.5f %.5f %.5f\n",
-            #                     result[i].min[1],
-            #                     result[i].min[2],
-            #                     result[i].min[3]
-            #                 )
-            #                 @printf(
-            #                     "%.5f %.5f %.5f\n",
-            #                     result[i].max[1],
-            #                     result[i].max[2],
-            #                     result[i].max[3]
-            #                 )
-            #             end
         end
         result
     elseif length(shape.quads) > 0
@@ -168,21 +142,6 @@ function make_bvh(bboxes::Array{Bbox3f,1}, high_quality::Bool)::BvhTree
     centers = Array{Vec3f,1}(undef, length(bboxes))
     for i in 1:length(bboxes)
         centers[i] = center(bboxes[i])
-        #         if i % 10000 == 1
-        #             @printf(
-        #                 "%.5f %.5f %.5f\n",
-        #                 bboxes[i].min[1],
-        #                 bboxes[i].min[2],
-        #                 bboxes[i].min[3]
-        #             )
-        #             @printf(
-        #                 "%.5f %.5f %.5f\n",
-        #                 bboxes[i].max[1],
-        #                 bboxes[i].max[2],
-        #                 bboxes[i].max[3]
-        #             )
-        #             @printf("%.5f %.5f %.5f\n", centers[i][1], centers[i][2], centers[i][3])
-        #         end
     end
     stack = Stack{Vec3i}()
     push!(stack, Vec3i(1, 1, length(bboxes)))
@@ -196,7 +155,7 @@ function make_bvh(bboxes::Array{Bbox3f,1}, high_quality::Bool)::BvhTree
         if right - left + 1 > BVH_MAX_PRIMS
             mid, axis = if high_quality
                 #todo method does not exist yet
-                #                 split_sah(centers, bboxes, left, right)
+                #split_sah(centers, bboxes, left, right)
                 (0, 0)
             else
                 split_middle(bvh.primitives, bboxes, centers, left, right)
@@ -246,13 +205,7 @@ function split_middle(
     split = center(cbbox)[axis]
     middle =
         partition((primitive) -> centers[primitive][axis] < split, primitives, left, right)
-    if middle < left
-        middle = left
-    end
-    if middle > right
-        middle = right
-    end
-    if middle == left || middle == right
+    if middle < left || middle > right
         return (div(left + right + 1, 2), axis)
     end
     return (middle, axis)
@@ -278,7 +231,6 @@ end
 
 function verify_bvh(bvh)::Bool
     function verify_tree(tree)::Bool
-        #         @printf("nodes %d\n", length(tree.nodes))
         total = 0
         for node in tree.nodes
             if !node.internal
