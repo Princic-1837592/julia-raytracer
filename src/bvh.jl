@@ -20,7 +20,7 @@ using ..Geometry:
     merge_bbox3f_vec3f,
     center
 using DataStructures: Stack
-# using Printf: @printf
+using Printf: @printf
 
 const BVH_MAX_PRIMS = 4
 
@@ -274,6 +274,55 @@ function partition(f::Function, a::Array{T,1}, start::Int32, stop::Int32)::Int32
         a[i], a[j] = a[j], a[i]
     end
     j
+end
+
+function verify_bvh(bvh)::Bool
+    function verify_tree(tree)::Bool
+        #         @printf("nodes %d\n", length(tree.nodes))
+        total = 0
+        for node in tree.nodes
+            if !node.internal
+                total += node.num
+            end
+        end
+        if total != length(tree.primitives)
+            @printf("total %d != primitives %d\n", total, length(tree.primitives))
+            return false
+        end
+        seen = Array{Bool,1}(undef, total)
+        for i in 1:length(seen)
+            seen[i] = false
+        end
+        for node in tree.nodes
+            if !node.internal
+                for i in (node.start):(node.start + node.num - 1)
+                    if seen[i]
+                        println("seen $i")
+                        return false
+                    end
+                    seen[i] = true
+                end
+            end
+        end
+        for i in 1:length(seen)
+            if !seen[i]
+                println("not seen $i")
+                return false
+            end
+        end
+        true
+    end
+
+    println("verifying bvh...")
+    if !verify_tree(bvh.bvh)
+        return false
+    end
+    for shape in bvh.shapes
+        if !verify_tree(shape.bvh)
+            return false
+        end
+    end
+    true
 end
 
 end
