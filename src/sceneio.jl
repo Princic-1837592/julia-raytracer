@@ -17,6 +17,7 @@ using ..Scene:
     EnvironmentData,
     load_texture
 using ..Shape: load_shape, ShapeData
+using ..Image: ImageData
 
 #todo check all return values
 function load_scene(filename::String, no_parallel::Bool)::SceneData
@@ -94,5 +95,7 @@ function load_scene(filename::String, no_parallel::Bool)::SceneData
 end
 
 function add_environment(scene, params) end
+
+function save_image(filename::String, image::ImageData) end
 
 end
