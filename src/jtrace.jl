@@ -36,7 +36,7 @@ function main()
         add_environment(scene, params["envname"])
     end
     println("finding camera...")
-    params["camera"] == find_camera(scene, params["camera"])
+    params["camera"] = find_camera(scene, params["camera"])
     #todo(?) subdivs
     println("building bvh...")
     bvh = make_scene_bvh(scene, params["highqualitybvh"], params["noparallel"])
