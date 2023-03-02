@@ -20,7 +20,7 @@ using ..Geometry:
     merge_bbox3f_vec3f,
     center
 using DataStructures: Stack
-using Printf: @printf
+# using Printf: @printf
 
 const BVH_MAX_PRIMS = 4
 
@@ -111,6 +111,32 @@ function make_shape_bvh(shape::ShapeData, high_quality::Bool)::ShapeBvh
                 shape.positions[triangle[2]],
                 shape.positions[triangle[3]],
             )
+            #             if i % 10000 == 1
+            #                 @printf(
+            #                     "%.5f %.5f %.5f\n%.5f %.5f %.5f\n%.5f %.5f %.5f\n",
+            #                     shape.positions[triangle[1]][1],
+            #                     shape.positions[triangle[1]][2],
+            #                     shape.positions[triangle[1]][3],
+            #                     shape.positions[triangle[2]][1],
+            #                     shape.positions[triangle[2]][2],
+            #                     shape.positions[triangle[2]][3],
+            #                     shape.positions[triangle[3]][1],
+            #                     shape.positions[triangle[3]][2],
+            #                     shape.positions[triangle[3]][3]
+            #                 )
+            #                 @printf(
+            #                     "%.5f %.5f %.5f\n",
+            #                     result[i].min[1],
+            #                     result[i].min[2],
+            #                     result[i].min[3]
+            #                 )
+            #                 @printf(
+            #                     "%.5f %.5f %.5f\n",
+            #                     result[i].max[1],
+            #                     result[i].max[2],
+            #                     result[i].max[3]
+            #                 )
+            #             end
         end
         result
     elseif length(shape.quads) > 0
@@ -142,6 +168,21 @@ function make_bvh(bboxes::Array{Bbox3f,1}, high_quality::Bool)::BvhTree
     centers = Array{Vec3f,1}(undef, length(bboxes))
     for i in 1:length(bboxes)
         centers[i] = center(bboxes[i])
+        #         if i % 10000 == 1
+        #             @printf(
+        #                 "%.5f %.5f %.5f\n",
+        #                 bboxes[i].min[1],
+        #                 bboxes[i].min[2],
+        #                 bboxes[i].min[3]
+        #             )
+        #             @printf(
+        #                 "%.5f %.5f %.5f\n",
+        #                 bboxes[i].max[1],
+        #                 bboxes[i].max[2],
+        #                 bboxes[i].max[3]
+        #             )
+        #             @printf("%.5f %.5f %.5f\n", centers[i][1], centers[i][2], centers[i][3])
+        #         end
     end
     stack = Stack{Vec3i}()
     push!(stack, Vec3i(1, 1, length(bboxes)))
