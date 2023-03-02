@@ -13,7 +13,7 @@ include("geometry.jl")
 include("bvh.jl")
 include("sceneio.jl")
 include("trace.jl")
-using .Bvh: make_scene_bvh
+using .Bvh: make_scene_bvh, verify_bvh
 using .Cli: parse_cli_args
 using .Scene: add_sky, find_camera
 using .SceneIO: load_scene, add_environment
@@ -40,6 +40,7 @@ function main()
     #todo(?) subdivs
     println("building bvh...")
     bvh = make_scene_bvh(scene, params["highqualitybvh"], params["noparallel"])
+    println(verify_bvh(bvh))
     println("making lights...")
     lights = make_trace_lights(scene, params)
     println("making state...")
