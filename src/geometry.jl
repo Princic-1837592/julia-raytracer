@@ -21,17 +21,18 @@ struct Bbox3f
     Bbox3f(min::Vec3f, max::Vec3f) = new(min, max)
 end
 
+#todo-check if correct to use min. and max. here
 point_bounds(p::Vec3f, r::Float32)::Bbox3f =
-    Bbox3f(min(p .- r, p .+ r), max(p .- r, p .+ r))
+    Bbox3f(min.(p .- r, p .+ r), max.(p .- r, p .+ r))
 
 line_bounds(p1::Vec3f, p2::Vec3f, r1::Float32, r2::Float32)::Bbox3f =
-    Bbox3f(min(p1 .- r1, p2 .- r2), max(p1 .+ r1, p2 .+ r2))
+    Bbox3f(min.(p1 .- r1, p2 .- r2), max.(p1 .+ r1, p2 .+ r2))
 
 triangle_bounds(p1::Vec3f, p2::Vec3f, p3::Vec3f)::Bbox3f =
-    Bbox3f(min(p1, p2, p3), max(p1, p2, p3))
+    Bbox3f(min.(p1, p2, p3), max.(p1, p2, p3))
 
 quad_bounds(p1::Vec3f, p2::Vec3f, p3::Vec3f, p4::Vec3f)::Bbox3f =
-    Bbox3f(min(p1, p2, p3, p4), max(p1, p2, p3, p4))
+    Bbox3f(min.(p1, p2, p3, p4), max.(p1, p2, p3, p4))
 
 #yocto_geometry.cpp 455
 function transform_bbox(frame::Frame3f, bbox::Bbox3f)::Bbox3f
@@ -53,11 +54,12 @@ function transform_bbox(frame::Frame3f, bbox::Bbox3f)::Bbox3f
 end
 
 #yocto_geometry.cpp 410
+#todo-check if correct to use min. and max. here
 merge_bbox3f_vec3f(bbox::Bbox3f, vector::Vec3f)::Bbox3f =
-    Bbox3f(min(bbox.min, vector), max(bbox.max, vector))
+    Bbox3f(min.(bbox.min, vector), max.(bbox.max, vector))
 
 merge_bbox3f(bbox1::Bbox3f, bbox2::Bbox3f)::Bbox3f =
-    Bbox3f(min(bbox1.min, bbox2.min), max(bbox1.max, bbox2.max))
+    Bbox3f(min.(bbox1.min, bbox2.min), max(bbox1.max, bbox2.max))
 
 center(bbox::Bbox3f)::Vec3f = (bbox.min + bbox.max) / 2
 
