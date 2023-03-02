@@ -67,9 +67,9 @@ function get_image(image::ImageData, state::TraceState)
     image.width = state.width
     image.height = state.height
     if length(state.denoised) == 0
-        image.pixels = state.image
+        image.data = state.image
     else
-        image.pixels = state.denoised
+        image.data = state.denoised
     end
 end
 
