@@ -33,13 +33,13 @@ end
 function make_trace_lights(scene::SceneData, params) end
 
 function make_trace_state(scene::SceneData, params)::TraceState
-    camera = scene.cameras[params["camera"]]
+    camera = scene.cameras[params.camera]
     if camera.aspect >= 1
-        width = params["resolution"]
-        height = round(Int32, params["resolution"] / camera.aspect)
+        width = params.resolution
+        height = round(Int32, params.resolution / camera.aspect)
     else
-        height = params["resolution"]
-        width = round(Int32, params["resolution"] * camera.aspect)
+        height = params.resolution
+        width = round(Int32, params.resolution * camera.aspect)
     end
     samples = 0
     image = Array{Vec4f}(undef, width * height)
@@ -51,7 +51,7 @@ function make_trace_state(scene::SceneData, params)::TraceState
     hits = Array{Int32}(undef, width * height)
     fill!(hits, 0)
     denoised = Array{Vec4f}(undef, 0)
-    if params["denoise"]
+    if params.denoise
         denoised = Array{Vec4f}(undef, width * height)
         fill!(denoised, Vec4f(0, 0, 0, 0))
     end
@@ -59,10 +59,10 @@ function make_trace_state(scene::SceneData, params)::TraceState
 end
 
 function trace_samples(state::TraceState, scene::SceneData, bvh::SceneBvh, lights, params)
-    if state.samples >= params["samples"]
+    if state.samples >= params.samples
         return
     end
-    if params["noparallel"] || true
+    if params.noparallel || true
         for i in 0:(state.height - 1)
             for j in 0:(state.width - 1)
                 trace_sample(state, scene, bvh, lights, i, j, state.samples, params)
@@ -84,7 +84,7 @@ function trace_sample(
     sample::Int32,
     params,
 )
-    camera = scene.cameras[params["camera"]]
+    camera = scene.cameras[params.camera]
     idx = state.width * i + j + 1
     #todo
     ray = sample_camera(
@@ -93,7 +93,7 @@ function trace_sample(
         Vec2i(state.width, state.height),
         Vec2f(0, 0),
         Vec2f(0, 0),
-        params["tentfilter"],
+        params.tentfilter,
     )
     #todo
     radiance, hit, albedo, normal = trace_naive(scene, bvh, lights, ray, params)
@@ -112,7 +112,7 @@ function trace_sample(
         state.albedo[idx] = lerp(state.albedo[idx], albedo, weight)
         state.normal[idx] = lerp(state.normal[idx], normal, weight)
         state.hits[idx] += 1
-    elseif !params["envhidden"] && length(scene.environments) != 0
+    elseif !params.envhidden && length(scene.environments) != 0
     else
         state.image[idx] = lerp(state.image[idx], Vec4f(0, 0, 0, 0), weight)
         state.albedo[idx] = lerp(state.albedo[idx], Vec3f(0, 0, 0), weight)

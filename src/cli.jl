@@ -6,7 +6,8 @@ cli:
 =#
 
 module Cli
-using ArgParse
+
+using ArgParse: ArgParseSettings, @add_arg_table!, parse_args
 
 cli_parser = ArgParseSettings()
 @add_arg_table! cli_parser begin
@@ -17,7 +18,7 @@ cli_parser = ArgParseSettings()
     "--output"
     help = "output filename"
     arg_type = String
-    default = "output.png"
+    default = "tests/test_scene.png"
     "--camera"
     help = "camera name"
     arg_type = String
@@ -63,5 +64,76 @@ cli_parser = ArgParseSettings()
     arg_type = Bool
     default = false
 end
-parse_cli_args() = parse_args(cli_parser)
+
+mutable struct Params
+    scene::String
+    output::String
+    camera::Any
+    addsky::Bool
+    envname::String
+    resolution::Int
+    samples::Int
+    bounces::Int
+    denoise::Bool
+    noparallel::Bool
+    highqualitybvh::Bool
+    envhidden::Bool
+    tentfilter::Bool
+
+    function Params(
+        scene::String;
+        output = "tests/test_scene.png",
+        camera = "",
+        addsky = false,
+        envname = "",
+        resolution = 1280,
+        samples = 512,
+        bounces = 8,
+        denoise = false,
+        noparallel = false,
+        highqualitybvh = false,
+        envhidden = false,
+        tentfilter = false,
+    )
+        new(
+            scene,
+            output,
+            camera,
+            addsky,
+            envname,
+            resolution,
+            samples,
+            bounces,
+            denoise,
+            noparallel,
+            highqualitybvh,
+            envhidden,
+            tentfilter,
+        )
+    end
+
+    function Params(params)
+        new(
+            params["scene"],
+            params["output"],
+            params["camera"],
+            params["addsky"],
+            params["envname"],
+            params["resolution"],
+            params["samples"],
+            params["bounces"],
+            params["denoise"],
+            params["noparallel"],
+            params["highqualitybvh"],
+            params["envhidden"],
+            params["tentfilter"],
+        )
+    end
+end
+
+function parse_cli_args(args)::Params
+    params = parse_args(args, cli_parser)
+    Params(params)
+end
+
 end
