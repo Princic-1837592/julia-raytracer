@@ -5,6 +5,8 @@ ytrace:
 - Date: 2023-01-03
 =#
 
+module Jtrace
+
 include("math.jl")
 include("sampling.jl")
 include("geometry.jl")
@@ -60,4 +62,4 @@ function main(params::Params)
     save_image(params.output, image)
 end
 
-main()
+end
