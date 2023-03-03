@@ -7,18 +7,18 @@ ytrace:
 
 module Jtrace
 
+include("cli.jl")
 include("math.jl")
 include("sampling.jl")
 include("geometry.jl")
 include("image.jl")
 include("shape.jl")
-include("cli.jl")
 include("scene.jl")
 include("bvh.jl")
 include("sceneio.jl")
 include("trace.jl")
 using .Bvh: make_scene_bvh, verify_bvh
-using .Cli: Params
+using .Cli: Params, parse_cli_args
 using .Scene: add_sky, find_camera
 using .SceneIO: load_scene, add_environment, save_image
 using .Trace: make_trace_lights, make_trace_state, trace_samples, get_image
@@ -60,6 +60,19 @@ function main(params::Params)
     println("saving image...")
     image = get_image(state)
     save_image(params.output, image)
+end
+
+if abspath(PROGRAM_FILE) == @__FILE__
+    main(parse_cli_args(ARGS))
+else
+    main(
+        Params(
+            "tests/features1/bunny.json";
+            output = "tests/test_scene.png",
+            samples = 1,
+            resolution = 100,
+        ),
+    )
 end
 
 end
