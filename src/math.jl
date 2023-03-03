@@ -44,7 +44,13 @@ function Frame3f(array::AbstractVector{Float32})
 end
 Frame3f() = Frame3f(Vec3f(), Vec3f(), Vec3f(), Vec3f())
 
-dot(a, b) = sum(a .* b)
+const Mat3f = SVector{3,Vec3f}
+Mat3f() = Mat3f(Vec3f(1, 0, 0), Vec3f(0, 1, 0), Vec3f(0, 0, 1))
+Mat3f(frame::Frame3f) = Mat3f(frame[1], frame[2], frame[3])
+Mat3f(xx, xy, xz, yx, yy, yz, zx, zy, zz) =
+    Mat3f(Vec3f(xx, xy, xz), Vec3f(yx, yy, yz), Vec3f(zx, zy, zz))
+
+dot(a::Vec3f, b::Vec3f) = sum(a .* b)
 
 function normalize(a::Vec3f)
     l = sqrt(dot(a, a))
@@ -64,5 +70,34 @@ transform_vector(a::Frame3f, b::Vec3f)::Vec3f = a[1] * b[1] + a[2] * b[2] + a[3]
 transform_direction(a::Frame3f, b::Vec3f)::Vec3f = normalize(transform_vector(a, b))
 
 lerp(a::Vec4f, b::Vec4f, u::Float32) = a * (1 - u) + b * u
+
+function inverse(frame::Frame3f, non_rigid::Bool)::Frame3f
+    if non_rigid
+        minv = inverse(rotation(frame))
+        make_frame(minv, -(minv * frame[4]))
+    else
+        minv = transpose(rotation(frame))
+        make_frame(minv, -(minv * frame[4]))
+    end
+end
+
+Base.:*(m::Mat3f, f::Vec3f)::Vec3f = m[1] * f[1] + m[2] * f[2] + m[3] * f[3]
+
+inverse(m::Mat3f)::Mat3f = adjoint(m) * (1 / determinant(m))
+
+adjoint(m::Mat3f)::Mat3f =
+    transpose(Mat3f(cross(m[2], m[3]), cross(m[3], m[1]), cross(m[1], m[2])))
+
+cross(a::Vec3f, b::Vec3f)::Vec3f =
+    Vec3f(a[2] * b[3] - a[3] * b[2], a[3] * b[1] - a[1] * b[3], a[1] * b[2] - a[2] * b[1])
+
+determinant(m::Mat3f)::Float32 = dot(m[1], cross(m[2], m[3]))
+
+rotation(frame::Frame3f)::Mat3f = Mat3f(frame[1], frame[2], frame[3])
+
+make_frame(m::Mat3f, t::Vec3f)::Frame3f = Frame3f(m[1], m[2], m[3], t)
+
+transpose(m::Mat3f)::Mat3f =
+    Mat3f(m[1][1], m[2][1], m[3][1], m[1][2], m[2][2], m[3][2], m[1][3], m[2][3], m[3][3])
 
 end

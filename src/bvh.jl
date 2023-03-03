@@ -8,7 +8,7 @@ bvh:
 module Bvh
 
 using ..Scene: SceneData, ShapeData
-using ..Math: Vec3f, Frame3f, Vec3i
+using ..Math: Vec3f, Frame3f, Vec3i, inverse
 using ..Geometry:
     point_bounds,
     line_bounds,
@@ -17,18 +17,20 @@ using ..Geometry:
     Bbox3f,
     transform_bbox,
     merge_bbox3f,
-    merge_bbox3f_vec3f,
     center,
-    Ray3f
+    Ray3f,
+    intersect_bbox,
+    transform_ray
 using DataStructures: Stack
 using Printf: @printf
 
-const BVH_MAX_PRIMS = 4
+#todo 4
+const BVH_MAX_PRIMS = 1000000
 
 mutable struct BvhNode
     bbox     :: Bbox3f
     start    :: Int32
-    num      :: Int16
+    num      :: Int32
     axis     :: Int8
     internal :: Bool
 
@@ -187,7 +189,7 @@ function split_middle(
 )::Tuple{Int32,Int8}
     cbbox = Bbox3f()
     for i in left:right
-        cbbox = merge_bbox3f_vec3f(cbbox, centers[primitives[i]])
+        cbbox = merge_bbox3f(cbbox, centers[primitives[i]])
     end
     csize = cbbox.max - cbbox.min
     if csize == Vec3f(0, 0, 0)
@@ -230,16 +232,78 @@ function partition(f::Function, a::Array{T,1}, start::Int32, stop::Int32)::Int32
     j
 end
 
-function intersect_scene_bvh(sbvh::SceneBvh, scene::Scene, ray::Ray3f, find_any::Bool)::Bool
+function intersect_scene_bvh(
+    sbvh::SceneBvh,
+    scene::SceneData,
+    ray_::Ray3f,
+    find_any::Bool,
+)::Bool
     bvh = sbvh.bvh
     if length(bvh.nodes) == 0
         return false
     end
     stack = Array{Int32,1}(undef, 128)
     fill!(stack, 0)
-    node_cur=1
+    node_cur = 1
     stack[node_cur] = 1
     node_cur += 1
+    ray = Ray3f(ray_.o, ray_.d, ray_.tmin, ray_.tmax)
+    ray_dinv = Vec3f(1 / ray.d[1], 1 / ray.d[2], 1 / ray.d[3])
+    ray_dsign = Vec3i(if ray.d[1] < 0
+        1
+    else
+        0
+    end, if ray.d[2] < 0
+        1
+    else
+        0
+    end, if ray.d[3] < 0
+        1
+    else
+        0
+    end)
+    hit = false
+    while node_cur != 1
+        node_cur -= 1
+        node = bvh.nodes[stack[node_cur]]
+        if !intersect_bbox(ray, ray_dinv, node.bbox)
+            continue
+        end
+        if node.internal
+            if ray_dsign[node.axis] == 0
+                stack[node_cur] = node.start
+                node_cur += 1
+                stack[node_cur] = node.start + 1
+                node_cur += 1
+            else
+                stack[node_cur] = node.start + 1
+                node_cur += 1
+                stack[node_cur] = node.start
+                node_cur += 1
+            end
+        else
+            for i in (node.start):(node.start + node.num - 1)
+                instance = scene.instances[bvh.primitives[i]]
+                inv_ray = transform_ray(inverse(instance.frame, true), ray)
+                if !intersect_shape_bvh(
+                    sbvh.shapes[instance.shape],
+                    scene.shapes[instance.shape],
+                    inv_ray,
+                    find_any,
+                )
+                    continue
+                end
+                if find_any
+                    return true
+                end
+                hit = true
+            end
+        end
+        if find_any && hit
+            return true
+        end
+    end
+    hit
 end
 
 function verify_bvh(bvh)::Bool
