@@ -25,14 +25,12 @@ using ..Geometry:
 using DataStructures: Stack
 using Printf: @printf
 
-#todo 4
 const BVH_MAX_PRIMS = 4
 
 mutable struct BvhNode
-    bbox  :: Bbox3f
-    start :: Int32
-    #todo 16
-    num      :: Int32
+    bbox     :: Bbox3f
+    start    :: Int32
+    num      :: Int16
     axis     :: Int8
     internal :: Bool
 
