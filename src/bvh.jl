@@ -20,16 +20,18 @@ using ..Geometry:
     center,
     Ray3f,
     intersect_bbox,
-    transform_ray
+    transform_ray,
+    intersect_triangle
 using DataStructures: Stack
 using Printf: @printf
 
 #todo 4
-const BVH_MAX_PRIMS = 1000000
+const BVH_MAX_PRIMS = 4
 
 mutable struct BvhNode
-    bbox     :: Bbox3f
-    start    :: Int32
+    bbox  :: Bbox3f
+    start :: Int32
+    #todo 16
     num      :: Int32
     axis     :: Int8
     internal :: Bool
@@ -153,8 +155,37 @@ function make_bvh(bboxes::Array{Bbox3f,1}, high_quality::Bool)::BvhTree
         node_id, left, right = pop!(stack)
         node = bvh.nodes[node_id]
         for i in left:right
+            #             if i == left || i == right
+            #                 @printf(
+            #                     "merging %d\n%.5f %.5f %.5f\n%.5f %.5f %.5f\nwith\n%.5f %.5f %.5f\n%.5f %.5f %.5f\n",
+            #                     i,
+            #                     node.bbox.min[1],
+            #                     node.bbox.min[2],
+            #                     node.bbox.min[3],
+            #                     node.bbox.max[1],
+            #                     node.bbox.max[2],
+            #                     node.bbox.max[3],
+            #                     bboxes[bvh.primitives[i]].min[1],
+            #                     bboxes[bvh.primitives[i]].min[2],
+            #                     bboxes[bvh.primitives[i]].min[3],
+            #                     bboxes[bvh.primitives[i]].max[1],
+            #                     bboxes[bvh.primitives[i]].max[2],
+            #                     bboxes[bvh.primitives[i]].max[3]
+            #                 )
+            #             end
             node.bbox = merge_bbox3f(node.bbox, bboxes[bvh.primitives[i]])
         end
+        #         @printf(
+        #             "%d %d\n%.5f %.5f %.5f\n%.5f %.5f %.5f\n",
+        #             length(stack),
+        #             node_id,
+        #             node.bbox.min[1],
+        #             node.bbox.min[2],
+        #             node.bbox.min[3],
+        #             node.bbox.max[1],
+        #             node.bbox.max[2],
+        #             node.bbox.max[3]
+        #         )
         if right - left + 1 > BVH_MAX_PRIMS
             mid, axis = if high_quality
                 #todo method does not exist yet
@@ -247,6 +278,7 @@ function intersect_scene_bvh(
     node_cur = 1
     stack[node_cur] = 1
     node_cur += 1
+    hit = false
     ray = Ray3f(ray_.o, ray_.d, ray_.tmin, ray_.tmax)
     ray_dinv = Vec3f(1 / ray.d[1], 1 / ray.d[2], 1 / ray.d[3])
     ray_dsign = Vec3i(if ray.d[1] < 0
@@ -262,12 +294,25 @@ function intersect_scene_bvh(
     else
         0
     end)
-    hit = false
     while node_cur != 1
         node_cur -= 1
         node = bvh.nodes[stack[node_cur]]
+        @printf(
+            "%d %d\n%.5f %.5f %.5f\n%.5f %.5f %.5f\n",
+            node.start,
+            node.num,
+            node.bbox.min[1],
+            node.bbox.min[2],
+            node.bbox.min[3],
+            node.bbox.max[1],
+            node.bbox.max[2],
+            node.bbox.max[3]
+        )
         if !intersect_bbox(ray, ray_dinv, node.bbox)
+            println("miss")
             continue
+        else
+            println("hit")
         end
         if node.internal
             if ray_dsign[node.axis] == 0
@@ -312,7 +357,68 @@ function intersect_shape_bvh(
     ray_::Ray3f,
     find_any::Bool,
 )::Bool
-    true
+    bvh = sbvh.bvh
+    if length(bvh.nodes) == 0
+        return false
+    end
+    stack = Array{Int32,1}(undef, 128)
+    fill!(stack, 0)
+    node_cur = 1
+    stack[node_cur] = 1
+    node_cur += 1
+    hit = false
+    ray = Ray3f(ray_.o, ray_.d, ray_.tmin, ray_.tmax)
+    ray_dinv = Vec3f(1 / ray.d[1], 1 / ray.d[2], 1 / ray.d[3])
+    ray_dsign = Vec3i(if ray.d[1] < 0
+        1
+    else
+        0
+    end, if ray.d[2] < 0
+        1
+    else
+        0
+    end, if ray.d[3] < 0
+        1
+    else
+        0
+    end)
+    while node_cur != 1
+        node_cur -= 1
+        node = bvh.nodes[stack[node_cur]]
+        if !intersect_bbox(ray, ray_dinv, node.bbox)
+            continue
+        end
+        if node.internal
+            if ray_dsign[node.axis] == 0
+                stack[node_cur] = node.start
+                node_cur += 1
+                stack[node_cur] = node.start + 1
+                node_cur += 1
+            else
+                stack[node_cur] = node.start + 1
+                node_cur += 1
+                stack[node_cur] = node.start
+                node_cur += 1
+            end
+        elseif length(shape.triangles) > 0
+            #             @printf("%d %d\n", node.start, node.num)
+            for i in (node.start):(node.start + node.num - 1)
+                if !intersect_triangle(
+                    ray,
+                    shape.positions[bvh.primitives[i][1]],
+                    shape.positions[bvh.primitives[i][2]],
+                    shape.positions[bvh.primitives[i][3]],
+                )
+                    continue
+                end
+                if find_any
+                    return true
+                end
+                hit = true
+            end
+        end
+    end
+    hit
 end
 
 function verify_bvh(bvh)::Bool

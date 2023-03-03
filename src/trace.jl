@@ -95,11 +95,12 @@ function trace_sample(
         Vec2f(0, 0),
         params["tentfilter"],
     )
-    @printf("%.5f %.5f %.5f\n", ray.o[1], ray.o[2], ray.o[3])
-    @printf("%.5f %.5f %.5f\n", ray.d[1], ray.d[2], ray.d[3])
-    @printf("%.5f %.5f\n", ray.tmin, ray.tmax)
     #todo
     radiance, hit, albedo, normal = trace_naive(scene, bvh, lights, ray, params)
+    #     @printf("%.5f %.5f %.5f\n", ray.o[1], ray.o[2], ray.o[3])
+    #     @printf("%.5f %.5f %.5f\n", ray.d[1], ray.d[2], ray.d[3])
+    #     @printf("%.5f %.5f\n", ray.tmin, ray.tmax)
+    println(hit)
     if !all(isfinite.(radiance))
         radiance = Vec3f(0, 0, 0)
     end
