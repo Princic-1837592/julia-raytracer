@@ -15,7 +15,7 @@ using ..Geometry: Ray3f
 using ..Sampling: sample_disk
 using Printf: @printf
 
-struct TraceState
+mutable struct TraceState
     width   :: Int32
     height  :: Int32
     samples :: Int32
@@ -100,12 +100,17 @@ function trace_sample(
     @printf("%.5f %.5f\n", ray.tmin, ray.tmax)
     #todo
     radiance, hit, albedo, normal = trace_naive(scene, bvh, lights, ray, params)
-    if !isfinite(radiance)
+    if !all(isfinite.(radiance))
         radiance = Vec3f(0, 0, 0)
     end
     #todo? if clamp
-    weight = 1 / (sample + 1)
+    weight::Float32 = 1 / (sample + 1)
     if hit
+        state.image[idx] =
+            lerp(state.image[idx], Vec4f(radiance.x, radiance.y, radiance.z, 1), weight)
+        state.albedo[idx] = lerp(state.albedo[idx], albedo, weight)
+        state.normal[idx] = lerp(state.normal[idx], normal, weight)
+        state.hits[idx] += 1
     elseif !params["envhidden"] && length(scene.environments) != 0
     else
         state.image[idx] = lerp(state.image[idx], Vec4f(0, 0, 0, 0), weight)
@@ -154,7 +159,7 @@ function trace_naive(
     ray::Ray3f,
     params,
 )::Tuple{Vec3f,Bool,Vec3f,Vec3f}
-    Vec3f(0, 0, 0),
+    Vec3f(1, 1, 1),
     #todo find_any=false
     intersect_scene_bvh(bvh, scene, ray, true),
     Vec3f(0, 0, 0),

@@ -71,6 +71,10 @@ transform_direction(a::Frame3f, b::Vec3f)::Vec3f = normalize(transform_vector(a,
 
 lerp(a::Vec4f, b::Vec4f, u::Float32) = a * (1 - u) + b * u
 
+lerp(a::Vec3f, b::Vec3f, u::Float32) = a * (1 - u) + b * u
+
+lerp(a::Vec3f, b::Vec3f, u::Vec3f) = a * (1 - u) + b * u
+
 function inverse(frame::Frame3f, non_rigid::Bool)::Frame3f
     if non_rigid
         minv = inverse(rotation(frame))

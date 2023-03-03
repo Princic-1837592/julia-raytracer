@@ -306,6 +306,15 @@ function intersect_scene_bvh(
     hit
 end
 
+function intersect_shape_bvh(
+    sbvh::ShapeBvh,
+    shape::ShapeData,
+    ray_::Ray3f,
+    find_any::Bool,
+)::Bool
+    true
+end
+
 function verify_bvh(bvh)::Bool
     function verify_tree(tree)::Bool
         total = 0
