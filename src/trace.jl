@@ -63,8 +63,8 @@ function trace_samples(state::TraceState, scene::SceneData, bvh::SceneBvh, light
         return
     end
     if params.noparallel || true
-        for i in 0:(state.height - 1)
-            for j in 0:(state.width - 1)
+        for j in 0:(state.height - 1)
+            for i in 0:(state.width - 1)
                 trace_sample(state, scene, bvh, lights, i, j, state.samples, params)
             end
         end
@@ -85,7 +85,7 @@ function trace_sample(
     params,
 )
     camera = scene.cameras[params.camera]
-    idx = state.width * i + j + 1
+    idx = state.width * j + i + 1
     #todo
     ray = sample_camera(
         camera,
@@ -97,10 +97,6 @@ function trace_sample(
     )
     #todo
     radiance, hit, albedo, normal = trace_naive(scene, bvh, lights, ray, params)
-    #     @printf("%.5f %.5f %.5f\n", ray.o[1], ray.o[2], ray.o[3])
-    #     @printf("%.5f %.5f %.5f\n", ray.d[1], ray.d[2], ray.d[3])
-    #     @printf("%.5f %.5f\n", ray.tmin, ray.tmax)
-    println(hit)
     if !all(isfinite.(radiance))
         radiance = Vec3f(0, 0, 0)
     end
