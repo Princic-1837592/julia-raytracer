@@ -7,7 +7,7 @@ geometry:
 
 module Geometry
 
-using ..Math: Vec3f, Frame3f, transform_point, transform_vector, cross, dot
+using ..Math: Vec3f, Frame3f, transform_point, transform_vector, cross, dot, Vec2f
 using Printf: @printf
 
 struct Bbox3f
@@ -33,6 +33,15 @@ struct Ray3f
     Ray3f() = new(Vec3f(0, 0, 0), Vec3f(0, 0, 1), ray_eps, typemax(Float32))
     Ray3f(o::Vec3f, d::Vec3f) = new(o, d, ray_eps, typemax(Float32))
     Ray3f(o::Vec3f, d::Vec3f, tmin::Float32, tmax::Float32) = new(o, d, tmin, tmax)
+end
+
+struct PrimIntersection
+    uv       :: Vec2f
+    distance :: Float32
+    hit      :: Bool
+
+    PrimIntersection() = new(Vec2f(0, 0), typemax(Float32), false)
+    PrimIntersection(uv::Vec2f, distance::Float32, hit::Bool) = new(uv, distance, hit)
 end
 
 #todo-check if correct to use min. and max. here
@@ -68,7 +77,6 @@ function transform_bbox(frame::Frame3f, bbox::Bbox3f)::Bbox3f
 end
 
 #yocto_geometry.cpp 410
-#todo-check if correct to use min. and max. here
 merge_bbox3f(bbox::Bbox3f, vector::Vec3f)::Bbox3f =
     Bbox3f(min.(bbox.min, vector), max.(bbox.max, vector))
 
@@ -94,55 +102,151 @@ function transform_ray(frame::Frame3f, ray::Ray3f)::Ray3f
     Ray3f(o, d, ray.tmin, ray.tmax)
 end
 
-function intersect_point(ray::Ray3f, p::Vec3f, r::Float32)::Bool
-    # yocto_geometry.cpp 701
-    false
+function intersect_point(ray::Ray3f, p::Vec3f, r::Float32)::PrimIntersection
+    w = p - ray.o
+    t = dot(w, ray.d) / dot(ray.d, ray.d)
+
+    if (t < ray.tmin || t > ray.tmax)
+        return PrimIntersection()
+    end
+
+    rp = ray.o + ray.d * t
+    prp = p - rp
+    if (dot(prp, prp) > r * r)
+        return PrimIntersection()
+    end
+
+    return PrimIntersection(Vec2f(0, 0), t, true)
 end
 
-function intersect_line(ray::Ray3f, p1::Vec3f, p2::Vec3f, r1::Float32, r2::Float32)::Bool
-    # yocto_geometry.cpp 701
-    false
+function intersect_line(
+    ray::Ray3f,
+    p1::Vec3f,
+    p2::Vec3f,
+    r1::Float32,
+    r2::Float32,
+)::PrimIntersection
+    u = ray.d
+    v = p1 - p0
+    w = ray.o - p0
+
+    a = dot(u, u)
+    b = dot(u, v)
+    c = dot(v, v)
+    d = dot(u, w)
+    e = dot(v, w)
+    det = a * c - b * b
+
+    if (det == 0)
+        return PrimIntersection()
+    end
+
+    t = (b * e - c * d) / det
+    s = (a * e - b * d) / det
+
+    if (t < ray.tmin || t > ray.tmax)
+        return PrimIntersection()
+    end
+
+    s = clamp(s, 0.0, 1.0)
+
+    pr = ray.o + ray.d * t
+    pl = p0 + (p1 - p0) * s
+    prl = pr - pl
+
+    d2 = dot(prl, prl)
+    r = r0 * (1 - s) + r1 * s
+    if (d2 > r * r)
+        return PrimIntersection()
+    end
+
+    return PrimIntersection(Vec2f(s, sqrt(d2) / r), t, true)
 end
 
-#todo
-function intersect_triangle(ray::Ray3f, p1::Vec3f, p2::Vec3f, p3::Vec3f)::Bool
-    #   // compute triangle edges
+function intersect_sphere(ray::Ray3f, p::Vec3f, r::Float32)::PrimIntersection
+    a = dot(ray.d, ray.d)
+    b = 2 * dot(ray.o - p, ray.d)
+    c = dot(ray.o - p, ray.o - p) - r * r
+
+    dis = b * b - 4 * a * c
+    if (dis < 0)
+        return PrimIntersection()
+    end
+
+    t = (-b - sqrt(dis)) / (2 * a)
+
+    if (t < ray.tmin || t > ray.tmax)
+        return PrimIntersection()
+    end
+
+    t = (-b + sqrt(dis)) / (2 * a)
+
+    if (t < ray.tmin || t > ray.tmax)
+        return PrimIntersection()
+    end
+
+    plocal = ((ray.o + ray.d * t) - p) / r
+    u = atan2(plocal[2], plocal[1]) / (2 * pif)
+    if (u < 0)
+        u += 1
+    end
+    v = acos(clamp(plocal[3], -1.0f0, 1.0f0)) / pif
+
+    return PrimIntersection(Vec2f(u, v), t, true)
+end
+
+function intersect_triangle(ray::Ray3f, p1::Vec3f, p2::Vec3f, p3::Vec3f)::PrimIntersection
     edge1 = p2 - p1
     edge2 = p3 - p1
 
-    #   // compute determinant to solve a linear system
     pvec = cross(ray.d, edge2)
     det = dot(edge1, pvec)
 
-    #   // check determinant and exit if triangle and ray are parallel
-    #   // (could use EPSILONS if desired)
     if (det == 0)
-        return false
+        return PrimIntersection()
     end
-    inv_det = 1.0 / det
+    inv_det::Float32 = 1.0 / det
 
-    #   // compute and check first bricentric coordinated
     tvec = ray.o - p1
     u = dot(tvec, pvec) * inv_det
     if (u < 0 || u > 1)
-        return false
+        return PrimIntersection()
     end
 
-    #   // compute and check second bricentric coordinated
     qvec = cross(tvec, edge1)
     v = dot(ray.d, qvec) * inv_det
     if (v < 0 || u + v > 1)
-        return false
+        return PrimIntersection()
     end
 
-    #   // compute and check ray parameter
     t = dot(edge2, qvec) * inv_det
     if (t < ray.tmin || t > ray.tmax)
-        return false
+        return PrimIntersection()
     end
 
-    #   // intersection occurred: set params and exit
-    true
+    PrimIntersection(Vec2f(u, v), t, true)
+end
+
+function intersect_quad(
+    ray::Ray3f,
+    p1::Vec3f,
+    p2::Vec3f,
+    p3::Vec3f,
+    p4::Vec3f,
+)::PrimIntersection
+    if (p2 == p3)
+        return intersect_triangle(ray, p0, p1, p3)
+    end
+    isec1 = intersect_triangle(ray, p0, p1, p3)
+    isec2 = intersect_triangle(ray, p2, p3, p1)
+    if (isec2.hit)
+        isec2.uv = 1 - isec2.uv
+    end
+    if isec1.distance < isec2.distance
+        isec1
+    else
+        isec2
+    end
 end
 
 end

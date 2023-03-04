@@ -388,12 +388,13 @@ function intersect_shape_bvh(
             #             @printf("%d %d\n", node.start, node.num)
             for i in (node.start):(node.start + node.num - 1)
                 t = shape.triangles[bvh.primitives[i]]
-                if !intersect_triangle(
+                pintersection = intersect_triangle(
                     ray,
                     shape.positions[t[1]],
                     shape.positions[t[2]],
                     shape.positions[t[3]],
                 )
+                if !pintersection.hit
                     continue
                 end
                 if find_any
