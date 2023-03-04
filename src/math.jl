@@ -113,4 +113,11 @@ make_frame(m::Mat3f, t::Vec3f)::Frame3f = Frame3f(m[1], m[2], m[3], t)
 transpose(m::Mat3f)::Mat3f =
     Mat3f(m[1][1], m[2][1], m[3][1], m[1][2], m[2][2], m[3][2], m[1][3], m[2][3], m[3][3])
 
+transform_normal(a::Frame3f, b::Vec3f, non_rigid::Bool = false) =
+    if (non_rigid)
+        transform_normal(rotation(a), b)
+    else
+        normalize(transform_vector(a, b))
+    end
+
 end

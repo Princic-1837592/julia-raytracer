@@ -7,7 +7,8 @@ geometry:
 
 module Geometry
 
-using ..Math: Vec3f, Frame3f, transform_point, transform_vector, cross, dot, Vec2f
+using ..Math:
+    Vec3f, Frame3f, transform_point, transform_vector, cross, dot, Vec2f, normalize
 using Printf: @printf
 
 struct Bbox3f
@@ -249,5 +250,12 @@ function intersect_quad(
         isec2
     end
 end
+
+line_tangent(p1::Vec3f, p2::Vec3f) = normalize(p2 - p1)
+
+triangle_normal(p1::Vec3f, p2::Vec3f, p3::Vec3f) = normalize(cross(p2 - p1, p3 - p1))
+
+quad_normal(p1::Vec3f, p2::Vec3f, p3::Vec3f, p4::Vec3f) =
+    normalize(triangle_normal(p1, p2, p4) + triangle_normal(p3, p4, p2))
 
 end

@@ -17,9 +17,12 @@ using ..Math:
     Vec4i,
     normalize,
     transform_point,
-    transform_direction
+    transform_direction,
+    cross,
+    dot,
+    transform_normal
 using ..Shape: ShapeData
-using ..Geometry: Ray3f
+using ..Geometry: Ray3f, quad_normal, triangle_normal
 using ImageMagick: load, load_
 using Printf: @printf
 
@@ -204,6 +207,49 @@ struct MaterialData
     end
 end
 
+struct MaterialPoint
+    type         :: MaterialType
+    emission     :: Vec3f
+    color        :: Vec3f
+    opacity      :: Float32
+    roughness    :: Float32
+    metallic     :: Float32
+    ior          :: Float32
+    density      :: Vec3f
+    scattering   :: Vec3f
+    scanisotropy :: Float32
+    trdepth      :: Float32
+
+    MaterialPoint() = new(gltfpbr, Vec3f(), Vec3f(), 1, 0, 0, 1, Vec3f(), Vec3f(), 0, 0.01)
+    MaterialPoint(emission::Vec3f, color::Vec3f) =
+        new(gltfpbr, emission, color, 1, 0, 0, 1, Vec3f(), Vec3f(), 0, 0.01)
+    MaterialPoint(
+        type::MaterialType,
+        emission::Vec3f,
+        color::Vec3f,
+        opacity::Float32,
+        roughness::Float32,
+        metallic::Float32,
+        ior::Float32,
+        density::Vec3f,
+        scattering::Vec3f,
+        scanisotropy::Float32,
+        trdepth::Float32,
+    ) = new(
+        type,
+        emission,
+        color,
+        opacity,
+        roughness,
+        metallic,
+        ior,
+        density,
+        scattering,
+        scanisotropy,
+        trdepth,
+    )
+end
+
 struct SubdivData
     quadspos         :: Vector{Vec4i}
     quadsnorm        :: Vector{Vec4i}
@@ -293,5 +339,211 @@ function eval_camera(camera::CameraData, image_uv::Vec2f, lens_uv::Vec2f)::Ray3f
 end
 
 function add_sky(scene) end
+
+function eval_shading_position(
+    scene::SceneData,
+    instance::InstanceData,
+    element::Int32,
+    uv::Vec2f,
+    outgoing::Vec3f,
+)::Vec3f
+    shape = scene.shapes[instance.shape]
+    if (length(shape.triangles) != 0 || length(shape.quads) != 0)
+        return eval_position(scene, instance, element, uv)
+    elseif (length(shape.lines))
+        return eval_position(scene, instance, element, uv)
+    elseif (length(shape.points))
+        return eval_position(shape, element, uv)
+    else
+        return Vec3f(0, 0, 0)
+    end
+end
+
+function eval_position(
+    scene::SceneData,
+    instance::InstanceData,
+    element::Int32,
+    uv::Vec2f,
+)::Vec3f
+    shape = scene.shapes[instance.shape]
+    if (length(shape.triangles) != 0)
+        t = shape.triangles[element]
+        return transform_point(
+            instance.frame,
+            interpolate_triangle(
+                shape.positions[t[1]],
+                shape.positions[t[2]],
+                shape.positions[t[3]],
+                uv,
+            ),
+        )
+    elseif (length(shape.quads) != 0)
+        q = shape.quads[element]
+        return transform_point(
+            instance.frame,
+            interpolate_quad(
+                shape.positions[q[1]],
+                shape.positions[q[2]],
+                shape.positions[q[3]],
+                shape.positions[q[4]],
+                uv,
+            ),
+        )
+    elseif (length(shape.lines) != 0)
+        l = shape.lines[element]
+        return transform_point(
+            instance.frame,
+            interpolate_line(shape.positions[l[1]], shape.positions[l[2]], uv[1]),
+        )
+    elseif (length(shape.points) != 0)
+        return transform_point(instance.frame, shape.positions[shape.points[element]])
+    else
+        return Vec3f(0, 0, 0)
+    end
+end
+
+interpolate_line(p1::Vec3f, p2::Vec3f, u::Float32) = p1 * (1 - u) + p2 * u
+
+interpolate_triangle(p1::Vec3f, p2::Vec3f, p3::Vec3f, uv::Vec2f) =
+    p1 * (1 .- uv.x .- uv.y) + p2 * uv.x + p3 * uv.y
+
+function interpolate_quad(p1::Vec3f, p2::Vec3f, p3::Vec3f, p4::Vec3f, uv::Vec2f)
+    if (uv.x + uv.y <= 1)
+        return interpolate_triangle(p1, p2, p4, uv)
+    else
+        return interpolate_triangle(p3, p4, p2, 1 .- uv)
+    end
+end
+
+function eval_shading_normal(
+    scene::SceneData,
+    instance::InstanceData,
+    element::Int32,
+    uv::Vec2f,
+    outgoing::Vec3f,
+)::Vec3f
+    shape = scene.shapes[instance.shape]
+    material = scene.materials[instance.material]
+    if length(shape.triangles) != 0 || length(shape.quads) != 0
+        normal = eval_normal(scene, instance, element, uv)
+        if material.normal_tex != invalid_id
+            normal = eval_normalmap(scene, instance, element, uv)
+        end
+        if material.type == refractive
+            return normal
+        end
+        return if dot(normal, outgoing) >= 0
+            normal
+        else
+            -normal
+        end
+    elseif length(shape.lines) != 0
+        normal = eval_normal(scene, instance, element, uv)
+        return orthonormalize(outgoing, normal)
+    elseif length(shape.points) != 0
+        return outgoing
+    else
+        return Vec3f(0, 0, 0)
+    end
+end
+
+function eval_normal(
+    scene::SceneData,
+    instance::InstanceData,
+    element::Int32,
+    uv::Vec2f,
+)::Vec3f
+    shape = scene.shapes[instance.shape]
+    if length(shape.normals) != 0
+        return eval_element_normal(scene, instance, element)
+    end
+    if length(!shape.triangles) != 0
+        t = shape.triangles[element]
+        return transform_normal(
+            instance.frame,
+            normalize(
+                interpolate_triangle(
+                    shape.normals[t.x],
+                    shape.normals[t.y],
+                    shape.normals[t.z],
+                    uv,
+                ),
+            ),
+        )
+    elseif length(!shape.quads) != 0
+        q = shape.quads[element]
+        return transform_normal(
+            instance.frame,
+            normalize(
+                interpolate_quad(
+                    shape.normals[q.x],
+                    shape.normals[q.y],
+                    shape.normals[q.z],
+                    shape.normals[q.w],
+                    uv,
+                ),
+            ),
+        )
+    elseif length(!shape.lines) != 0
+        l = shape.lines[element]
+        return transform_normal(
+            instance.frame,
+            normalize(interpolate_line(shape.normals[l.x], shape.normals[l.y], uv.x)),
+        )
+    elseif length(!shape.points) != 0
+        return transform_normal(
+            instance.frame,
+            normalize(shape.normals[shape.points[element]]),
+        )
+    else
+        return Vec3f(0, 0, 0)
+    end
+end
+
+function eval_element_normal(
+    scene::SceneData,
+    instance::InstanceData,
+    element::Int32,
+)::Vec3f
+    shape = scene.shapes[instance.shape]
+    if length(shape.triangles) != 0
+        t = shape.triangles[element]
+        return transform_normal(
+            instance.frame,
+            triangle_normal(
+                shape.positions[t.x],
+                shape.positions[t.y],
+                shape.positions[t.z],
+            ),
+        )
+    elseif length(shape.quads) != 0
+        q = shape.quads[element]
+        return transform_normal(
+            instance.frame,
+            quad_normal(
+                shape.positions[q.x],
+                shape.positions[q.y],
+                shape.positions[q.z],
+                shape.positions[q.w],
+            ),
+        )
+    elseif length(shape.lines) != 0
+        l = shape.lines[element]
+        return transform_normal(
+            instance.frame,
+            line_tangent(shape.positions[l.x], shape.positions[l.y]),
+        )
+    elseif length(shape.points) != 0
+        return Vec3f(0, 0, 1)
+    else
+        return Vec3f(0, 0, 0)
+    end
+end
+
+#yocto_scene.cpp 521
+function eval_material(scene::SceneData, instance::InstanceData, element::Int32, uv::Vec2f)
+    #todo
+    MaterialPoint(Vec3f(1, 1, 1), Vec3f(1, 1, 1))
+end
 
 end
