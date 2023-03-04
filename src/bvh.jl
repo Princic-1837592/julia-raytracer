@@ -295,22 +295,8 @@ function intersect_scene_bvh(
     while node_cur != 1
         node_cur -= 1
         node = bvh.nodes[stack[node_cur]]
-        @printf(
-            "%d %d\n%.5f %.5f %.5f\n%.5f %.5f %.5f\n",
-            node.start,
-            node.num,
-            node.bbox.min[1],
-            node.bbox.min[2],
-            node.bbox.min[3],
-            node.bbox.max[1],
-            node.bbox.max[2],
-            node.bbox.max[3]
-        )
         if !intersect_bbox(ray, ray_dinv, node.bbox)
-            println("miss")
             continue
-        else
-            println("hit")
         end
         if node.internal
             if ray_dsign[node.axis] == 0
@@ -401,11 +387,12 @@ function intersect_shape_bvh(
         elseif length(shape.triangles) > 0
             #             @printf("%d %d\n", node.start, node.num)
             for i in (node.start):(node.start + node.num - 1)
+                t = shape.triangles[bvh.primitives[i]]
                 if !intersect_triangle(
                     ray,
-                    shape.positions[bvh.primitives[i][1]],
-                    shape.positions[bvh.primitives[i][2]],
-                    shape.positions[bvh.primitives[i][3]],
+                    shape.positions[t[1]],
+                    shape.positions[t[2]],
+                    shape.positions[t[3]],
                 )
                     continue
                 end
