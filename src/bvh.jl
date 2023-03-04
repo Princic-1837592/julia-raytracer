@@ -58,7 +58,6 @@ mutable struct SceneBvh
     SceneBvh() = new(BvhTree(), ShapeBvh[])
 end
 
-#yocto_bvh.cpp 365
 function make_scene_bvh(scene::SceneData, high_quality::Bool, no_parallel::Bool)::SceneBvh
     sbvh = SceneBvh()
     resize!(sbvh.shapes, length(scene.shapes))
@@ -84,7 +83,6 @@ function make_scene_bvh(scene::SceneData, high_quality::Bool, no_parallel::Bool)
     sbvh
 end
 
-#yocto_bvh.cpp 322
 function make_shape_bvh(shape::ShapeData, high_quality::Bool)::ShapeBvh
     sbvh = ShapeBvh()
     bboxes = if length(shape.points) > 0
@@ -135,7 +133,6 @@ function make_shape_bvh(shape::ShapeData, high_quality::Bool)::ShapeBvh
     sbvh
 end
 
-#yocto_bvh.cpp 239
 function make_bvh(bboxes::Array{Bbox3f,1}, high_quality::Bool)::BvhTree
     bvh = BvhTree()
     sizehint!(bvh.nodes, length(bboxes) * 2)
@@ -154,37 +151,8 @@ function make_bvh(bboxes::Array{Bbox3f,1}, high_quality::Bool)::BvhTree
         node_id, left, right = pop!(stack)
         node = bvh.nodes[node_id]
         for i in left:right
-            #             if i == left || i == right
-            #                 @printf(
-            #                     "merging %d\n%.5f %.5f %.5f\n%.5f %.5f %.5f\nwith\n%.5f %.5f %.5f\n%.5f %.5f %.5f\n",
-            #                     i,
-            #                     node.bbox.min[1],
-            #                     node.bbox.min[2],
-            #                     node.bbox.min[3],
-            #                     node.bbox.max[1],
-            #                     node.bbox.max[2],
-            #                     node.bbox.max[3],
-            #                     bboxes[bvh.primitives[i]].min[1],
-            #                     bboxes[bvh.primitives[i]].min[2],
-            #                     bboxes[bvh.primitives[i]].min[3],
-            #                     bboxes[bvh.primitives[i]].max[1],
-            #                     bboxes[bvh.primitives[i]].max[2],
-            #                     bboxes[bvh.primitives[i]].max[3]
-            #                 )
-            #             end
             node.bbox = merge_bbox3f(node.bbox, bboxes[bvh.primitives[i]])
         end
-        #         @printf(
-        #             "%d %d\n%.5f %.5f %.5f\n%.5f %.5f %.5f\n",
-        #             length(stack),
-        #             node_id,
-        #             node.bbox.min[1],
-        #             node.bbox.min[2],
-        #             node.bbox.min[3],
-        #             node.bbox.max[1],
-        #             node.bbox.max[2],
-        #             node.bbox.max[3]
-        #         )
         if right - left + 1 > BVH_MAX_PRIMS
             mid, axis = if high_quality
                 #todo method does not exist yet
@@ -386,7 +354,6 @@ function intersect_shape_bvh(
                 node_cur += 1
             end
         elseif length(shape.triangles) > 0
-            #             @printf("%d %d\n", node.start, node.num)
             for i in (node.start):(node.start + node.num - 1)
                 t = shape.triangles[bvh.primitives[i]]
                 pintersection = intersect_triangle(
