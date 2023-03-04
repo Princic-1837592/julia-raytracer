@@ -62,9 +62,12 @@ function main(params::Params)
     save_image(params.output, image)
 end
 
+using JuliaFormatter: format
+
 if abspath(PROGRAM_FILE) == @__FILE__
     main(parse_cli_args(ARGS))
 else
+    format(pwd(); overwrite = true)
     main(
         Params(
             "tests/features1/bunny.json";
