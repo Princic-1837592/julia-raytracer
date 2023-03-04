@@ -34,7 +34,7 @@ mutable struct BvhNode
     axis     :: Int8
     internal :: Bool
 
-    BvhNode() = new(Bbox3f(), 0, 0, 0, false)
+    BvhNode() = new(Bbox3f(), 0, 0, 1, false)
 end
 
 struct BvhTree
@@ -188,7 +188,7 @@ function make_bvh(bboxes::Array{Bbox3f,1}, high_quality::Bool)::BvhTree
             mid, axis = if high_quality
                 #todo method does not exist yet
                 #split_sah(centers, bboxes, left, right)
-                (0, 0)
+                (1, 1)
             else
                 split_middle(bvh.primitives, bboxes, centers, left, right)
             end
@@ -224,7 +224,7 @@ function split_middle(
     if csize == Vec3f(0, 0, 0)
         return div((left + right + 1), 2), 0
     end
-    axis = 0
+    axis = 1
     if csize[1] >= csize[2] && csize[1] >= csize[3]
         axis = 1
     end
