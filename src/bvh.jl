@@ -8,6 +8,7 @@ bvh:
 module Bvh
 
 using ..Scene: SceneData, ShapeData
+using ..Shape: ShapeIntersection
 using ..Math: Vec3f, Frame3f, Vec3i, inverse
 using ..Geometry:
     point_bounds,
