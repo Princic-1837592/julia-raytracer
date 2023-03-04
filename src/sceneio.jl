@@ -100,7 +100,7 @@ function add_environment(scene, params) end
 function save_image(filename::String, image::ImageData)
     ext = lowercase(splitext(filename)[2])
     if ext != ".png"
-        error("$ext is not supported")
+        error(ext, " is not supported")
     end
     matrix = Array{RGBA{Float32},2}(undef, image.height, image.width)
     for i in 1:(image.height)
