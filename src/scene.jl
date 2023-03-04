@@ -95,23 +95,13 @@ function load_texture(path::String, texture::TextureData)::Bool
     elseif extension == ".png"
         bytes = Vector{UInt8}(undef, filesize(path))
         read!(path, bytes)
-        println("bytes: ", length(bytes))
         img = load_(bytes)
-        println("img: ", length(img))
-        img = load(path)
-        println("img: ", size(img))
-        #         @printf(
-        #             "texture %s\n%.5f %.5f %.5f %.5f\n%.5f %.5f %.5f %.5f\n",
-        #             path,
-        #             img[1, 1].r,
-        #             img[1, 1].g,
-        #             img[1, 1].b,
-        #             img[1, 1].alpha,
-        #             img[1, 2].r,
-        #             img[1, 2].g,
-        #             img[1, 2].b,
-        #             img[1, 2].alpha,
-        #         )
+        texture.height, texture.width = size(img)
+        texture.linear = false
+        texture.pixelsb = Vector{Vec4b}(undef, length(img))
+        for i in 1:length(img)
+            texture.pixelsb[i] = Vec4b(img[i])
+        end
     else
         println("unknown texture format: ", extension)
     end

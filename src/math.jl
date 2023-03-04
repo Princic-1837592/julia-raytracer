@@ -6,7 +6,9 @@ math:
 =#
 
 module Math
+
 using StaticArrays: SVector
+using Images: RGBA
 
 const pif = Float32(pi)
 
@@ -26,6 +28,12 @@ Vec4f() = Vec4f(0, 0, 0, 0)
 
 const Vec4b = SVector{4,UInt8}
 Vec4b() = Vec4b(0, 0, 0, 0)
+Vec4b(r::RGBA) = Vec4b(
+    UInt8(typemax(UInt8) * r.r),
+    UInt8(typemax(UInt8) * r.g),
+    UInt8(typemax(UInt8) * r.b),
+    UInt8(typemax(UInt8) * r.alpha),
+)
 
 const Frame3f = SVector{4,Vec3f}
 function Frame3f(array::AbstractVector{Float32})
