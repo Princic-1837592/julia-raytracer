@@ -11,16 +11,16 @@ using PlyIO: load_ply, ArrayProperty, ListProperty, Ply
 using ..Math: Vec2i, Vec3f, Vec4f, Vec3i, Vec4i, Vec2f
 
 mutable struct ShapeData
-    points    :: Array{Int32,1}
-    lines     :: Array{Vec2i,1}
-    triangles :: Array{Vec3i,1}
-    quads     :: Array{Vec4i,1}
-    positions :: Array{Vec3f,1}
-    normals   :: Array{Vec3f,1}
-    texcoords :: Array{Vec2f,1}
-    colors    :: Array{Vec4f,1}
-    radius    :: Array{Float32,1}
-    tangents  :: Array{Vec4f,1}
+    points    :: Vector{Int32}
+    lines     :: Vector{Vec2i}
+    triangles :: Vector{Vec3i}
+    quads     :: Vector{Vec4i}
+    positions :: Vector{Vec3f}
+    normals   :: Vector{Vec3f}
+    texcoords :: Vector{Vec2f}
+    colors    :: Vector{Vec4f}
+    radius    :: Vector{Float32}
+    tangents  :: Vector{Vec4f}
 
     ShapeData() = new()
 end
@@ -41,23 +41,23 @@ function load_shape(path::String, shape::ShapeData)::Bool
         return false
     end
     ply = load_ply(path)
-    shape.positions = Array{Vec3f,1}(undef, 0)
+    shape.positions = Vector{Vec3f}(undef, 0)
     result = get_vec3f_array(ply, "vertex", ["x", "y", "z"], shape.positions)
-    shape.normals = Array{Vec3f,1}(undef, 0)
+    shape.normals = Vector{Vec3f}(undef, 0)
     result = get_vec3f_array(ply, "vertex", ["nx", "ny", "nz"], shape.normals)
-    shape.texcoords = Array{Vec2f,1}(undef, 0)
+    shape.texcoords = Vector{Vec2f}(undef, 0)
     result = get_tex_coords(ply, true, shape.texcoords)
     #todo check in case there are more than 0
-    shape.colors = Array{Vec4f,1}(undef, 0)
+    shape.colors = Vector{Vec4f}(undef, 0)
     result = get_colors(ply, shape.colors)
-    shape.radius = Array{Float32,1}(undef, 0)
+    shape.radius = Vector{Float32}(undef, 0)
     result = get_f_array(ply, "vertex", "radius", shape.radius)
-    shape.triangles = Array{Vec3i,1}(undef, 0)
-    shape.quads = Array{Vec4i,1}(undef, 0)
+    shape.triangles = Vector{Vec3i}(undef, 0)
+    shape.quads = Vector{Vec4i}(undef, 0)
     result = get_faces(ply, "face", "vertex_indices", shape.triangles, shape.quads)
-    shape.lines = Array{Vec2i,1}(undef, 0)
+    shape.lines = Vector{Vec2i}(undef, 0)
     result = get_lines(ply, "line", "vertex_indices", shape.lines)
-    shape.points = Array{Int32,1}(undef, 0)
+    shape.points = Vector{Int32}(undef, 0)
     result = get_list_values(ply, "point", "vertex_indices", shape.points)
     #todo-check if correct. used to index @bvh:78, maybe increasing is needed here
     for collection in [shape.points, shape.lines, shape.triangles, shape.quads]
@@ -75,8 +75,8 @@ end
 function get_vec4f_array(
     ply::Ply,
     s_element::String,
-    s_properties::Array{String,1},
-    array::Array{Vec4f,1},
+    s_properties::Vector{String},
+    array::Vector{Vec4f},
 )::Bool
     element = try
         ply[s_element]
@@ -118,8 +118,8 @@ end
 function get_vec3f_array(
     ply::Ply,
     s_element::String,
-    s_properties::Array{String,1},
-    array::Array{Vec3f,1},
+    s_properties::Vector{String},
+    array::Vector{Vec3f},
 )::Bool
     element = try
         ply[s_element]
@@ -154,9 +154,9 @@ end
 function get_vec2f_array(
     ply::Ply,
     s_element::String,
-    s_properties::Array{String,1},
+    s_properties::Vector{String},
     flip::Bool,
-    array::Array{Vec2f,1},
+    array::Vector{Vec2f},
 )::Bool
     element = try
         ply[s_element]
@@ -192,7 +192,7 @@ function get_f_array(
     ply::Ply,
     s_element::String,
     s_property::String,
-    array::Array{Float32,1},
+    array::Vector{Float32},
 )::Bool
     element = try
         ply[s_element]
@@ -211,7 +211,7 @@ function get_f_array(
     return false
 end
 
-function get_tex_coords(ply::Ply, flip::Bool, array::Array{Vec2f,1})::Bool
+function get_tex_coords(ply::Ply, flip::Bool, array::Vector{Vec2f})::Bool
     element = try
         ply["vertex"]
     catch e
@@ -226,7 +226,7 @@ function get_tex_coords(ply::Ply, flip::Bool, array::Array{Vec2f,1})::Bool
     end
 end
 
-function get_colors(ply::Ply, array::Array{Vec4f,1})::Bool
+function get_colors(ply::Ply, array::Vector{Vec4f})::Bool
     element = try
         ply["vertex"]
     catch e
@@ -237,7 +237,7 @@ function get_colors(ply::Ply, array::Array{Vec4f,1})::Bool
             return get_vec4f_array(ply, "vertex", ["red", "green", "blue", "alpha"], array)
         end
     end
-    partial = Array{Vec3f,1}(undef, 0)
+    partial = Vector{Vec3f}(undef, 0)
     if !get_vec3f_array(ply, "vertex", ["red", "green", "blue"], partial)
         return false
     end
@@ -269,7 +269,7 @@ function has_quads(ply::Ply, s_element::String, s_property::String)::Bool
     return false
 end
 
-function get_vec4i_array(property::ListProperty, quads::Array{Vec4i,1})::Bool
+function get_vec4i_array(property::ListProperty, quads::Vector{Vec4i})::Bool
     sizehint!(quads, length(property.start_inds) - 1)
     for i in 1:(length(property.start_inds) - 1)
         index = property.start_inds[i]
@@ -319,7 +319,7 @@ end
 
 function get_vec3i_array(
     property::ListProperty{UInt8,Int32},
-    triangles::Array{Vec3i,1},
+    triangles::Vector{Vec3i},
 )::Bool
     sizehint!(triangles, length(property.start_inds) - 1)
     for i in 1:(length(property.start_inds) - 1)
@@ -356,7 +356,7 @@ function get_vec3i_array(
     return true
 end
 
-function get_vec2i_array(property::ListProperty, lines::Array{Vec2i,1})::Bool
+function get_vec2i_array(property::ListProperty, lines::Vector{Vec2i})::Bool
     sizehint!(lines, length(property.start_inds) - 1)
     for i in 1:(length(property.start_inds) - 1)
         index = property.start_inds[i]
@@ -383,8 +383,8 @@ function get_faces(
     ply::Ply,
     element::String,
     property::String,
-    triangles::Array{Vec3i,1},
-    quads::Array{Vec4i,1},
+    triangles::Vector{Vec3i},
+    quads::Vector{Vec4i},
 )::Bool
     if has_quads(ply, element, property)
         return get_vec4i_array(ply[element][property], quads)
@@ -396,7 +396,7 @@ function get_lines(
     ply::Ply,
     s_element::String,
     s_property::String,
-    lines::Array{Vec2i,1},
+    lines::Vector{Vec2i},
 )::Bool
     element = try
         ply[s_element]
@@ -415,7 +415,7 @@ function get_list_values(
     ply::Ply,
     s_element::String,
     s_property::String,
-    values::Array{Int32,1},
+    values::Vector{Int32},
 )::Bool
     element = try
         ply[s_element]

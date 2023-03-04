@@ -19,12 +19,12 @@ mutable struct TraceState
     width   :: Int32
     height  :: Int32
     samples :: Int32
-    image   :: Array{Vec4f,1}
-    albedo  :: Array{Vec3f,1}
-    normal  :: Array{Vec3f,1}
-    hits    :: Array{Int32,1}
+    image   :: Vector{Vec4f}
+    albedo  :: Vector{Vec3f}
+    normal  :: Vector{Vec3f}
+    hits    :: Vector{Int32}
     #  rngs       ::Array{rng_state}
-    denoised::Array{Vec4f,1}
+    denoised::Vector{Vec4f}
 
     TraceState(width, height, samples, image, albedo, normal, hits, denoised) =
         new(width, height, samples, image, albedo, normal, hits, denoised)
@@ -42,17 +42,17 @@ function make_trace_state(scene::SceneData, params)::TraceState
         width = round(Int32, params.resolution * camera.aspect)
     end
     samples = 0
-    image = Array{Vec4f}(undef, width * height)
+    image = Vector{Vec4f}(undef, width * height)
     fill!(image, Vec4f(0, 0, 0, 0))
-    albedo = Array{Vec3f}(undef, width * height)
+    albedo = Vector{Vec3f}(undef, width * height)
     fill!(albedo, Vec3f(0, 0, 0))
-    normal = Array{Vec3f}(undef, width * height)
+    normal = Vector{Vec3f}(undef, width * height)
     fill!(normal, Vec3f(0, 0, 0))
-    hits = Array{Int32}(undef, width * height)
+    hits = Vector{Int32}(undef, width * height)
     fill!(hits, 0)
-    denoised = Array{Vec4f}(undef, 0)
+    denoised = Vector{Vec4f}(undef, 0)
     if params.denoise
-        denoised = Array{Vec4f}(undef, width * height)
+        denoised = Vector{Vec4f}(undef, width * height)
         fill!(denoised, Vec4f(0, 0, 0, 0))
     end
     TraceState(width, height, samples, image, albedo, normal, hits, denoised)

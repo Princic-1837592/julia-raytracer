@@ -70,7 +70,7 @@ struct EnvironmentData
     emission_tex :: Int32
 
     function EnvironmentData(json)
-        frame = Frame3f(Float32.(get(json, "frame", Array{Float32,1}(undef, 0))))
+        frame = Frame3f(Float32.(get(json, "frame", Vector{Float32}(undef, 0))))
         emission = get(json, "emission", Vec3f())
         emission_tex = get(json, "emission_tex", invalid_id - 1) + 1
         #todo lookat
@@ -82,8 +82,8 @@ mutable struct TextureData
     width   :: Int32
     height  :: Int32
     linear  :: Bool
-    pixelsf :: Array{Vec4f,1}
-    pixelsb :: Array{Vec4b,1}
+    pixelsf :: Vector{Vec4f}
+    pixelsb :: Vector{Vec4b}
 
     TextureData() = new()
 end
@@ -93,7 +93,7 @@ function load_texture(path::String, texture::TextureData)::Bool
     if extension == ".hdr"
         #todo
     elseif extension == ".png"
-        bytes = Array{UInt8}(undef, filesize(path))
+        bytes = Vector{UInt8}(undef, filesize(path))
         read!(path, bytes)
         println("bytes: ", length(bytes))
         img = load_(bytes)
@@ -194,12 +194,12 @@ struct MaterialData
 end
 
 struct SubdivData
-    quadspos         :: Array{Vec4i,1}
-    quadsnorm        :: Array{Vec4i,1}
-    quadstexcoord    :: Array{Vec4i,1}
-    positions        :: Array{Vec3f,1}
-    normals          :: Array{Vec3f,1}
-    texcoords        :: Array{Vec3f,1}
+    quadspos         :: Vector{Vec4i}
+    quadsnorm        :: Vector{Vec4i}
+    quadstexcoord    :: Vector{Vec4i}
+    positions        :: Vector{Vec3f}
+    normals          :: Vector{Vec3f}
+    texcoords        :: Vector{Vec3f}
     subdivisions     :: Int32
     catmullclark     :: Bool
     smooth           :: Bool
@@ -209,13 +209,13 @@ struct SubdivData
 end
 
 struct SceneData
-    cameras      :: Array{CameraData,1}
-    instances    :: Array{InstanceData,1}
-    environments :: Array{EnvironmentData,1}
-    shapes       :: Array{ShapeData,1}
-    textures     :: Array{TextureData,1}
-    materials    :: Array{MaterialData,1}
-    subdivs      :: Array{SubdivData,1}
+    cameras      :: Vector{CameraData}
+    instances    :: Vector{InstanceData}
+    environments :: Vector{EnvironmentData}
+    shapes       :: Vector{ShapeData}
+    textures     :: Vector{TextureData}
+    materials    :: Vector{MaterialData}
+    subdivs      :: Vector{SubdivData}
     #names are necessary??
 
     SceneData() = new(

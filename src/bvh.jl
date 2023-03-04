@@ -42,8 +42,8 @@ mutable struct BvhNode
 end
 
 struct BvhTree
-    nodes      :: Array{BvhNode,1}
-    primitives :: Array{Int32,1}
+    nodes      :: Vector{BvhNode}
+    primitives :: Vector{Int32}
 
     BvhTree() = new(BvhNode[], Int32[])
 end
@@ -56,7 +56,7 @@ end
 
 mutable struct SceneBvh
     bvh    :: BvhTree
-    shapes :: Array{ShapeBvh,1}
+    shapes :: Vector{ShapeBvh}
 
     SceneBvh() = new(BvhTree(), ShapeBvh[])
 end
@@ -73,7 +73,7 @@ function make_scene_bvh(scene::SceneData, high_quality::Bool, no_parallel::Bool)
             sbvh.shapes[i] = make_shape_bvh(scene.shapes[i], high_quality)
         end
     end
-    bboxes = Array{Bbox3f,1}(undef, length(scene.instances))
+    bboxes = Vector{Bbox3f}(undef, length(scene.instances))
     for i in 1:length(bboxes)
         instance = scene.instances[i]
         bboxes[i] = if length(sbvh.shapes[instance.shape].bvh.nodes) == 0
@@ -89,14 +89,14 @@ end
 function make_shape_bvh(shape::ShapeData, high_quality::Bool)::ShapeBvh
     sbvh = ShapeBvh()
     bboxes = if length(shape.points) > 0
-        result = Array{Bbox3f,1}(undef, length(shape.points))
+        result = Vector{Bbox3f}(undef, length(shape.points))
         for i in 1:length(shape.points)
             point = shape.points[i]
             result[i] = point_bounds(shape.positions[point], shape.radius[point])
         end
         result
     elseif length(shape.lines) > 0
-        result = Array{Bbox3f,1}(undef, length(shape.lines))
+        result = Vector{Bbox3f}(undef, length(shape.lines))
         for i in 1:length(shape.lines)
             line = shape.lines[i]
             result[i] = line_bounds(
@@ -108,7 +108,7 @@ function make_shape_bvh(shape::ShapeData, high_quality::Bool)::ShapeBvh
         end
         result
     elseif length(shape.triangles) > 0
-        result = Array{Bbox3f,1}(undef, length(shape.triangles))
+        result = Vector{Bbox3f}(undef, length(shape.triangles))
         for i in 1:length(shape.triangles)
             triangle = shape.triangles[i]
             result[i] = triangle_bounds(
@@ -119,7 +119,7 @@ function make_shape_bvh(shape::ShapeData, high_quality::Bool)::ShapeBvh
         end
         result
     elseif length(shape.quads) > 0
-        result = Array{Bbox3f,1}(undef, length(shape.quads))
+        result = Vector{Bbox3f}(undef, length(shape.quads))
         for i in 1:length(shape.quads)
             quad = shape.quads[i]
             result[i] = quad_bounds(
@@ -136,14 +136,14 @@ function make_shape_bvh(shape::ShapeData, high_quality::Bool)::ShapeBvh
     sbvh
 end
 
-function make_bvh(bboxes::Array{Bbox3f,1}, high_quality::Bool)::BvhTree
+function make_bvh(bboxes::Vector{Bbox3f}, high_quality::Bool)::BvhTree
     bvh = BvhTree()
     sizehint!(bvh.nodes, length(bboxes) * 2)
     resize!(bvh.primitives, length(bboxes))
     for i in 1:length(bboxes)
         bvh.primitives[i] = i
     end
-    centers = Array{Vec3f,1}(undef, length(bboxes))
+    centers = Vector{Vec3f}(undef, length(bboxes))
     for i in 1:length(bboxes)
         centers[i] = center(bboxes[i])
     end
@@ -182,9 +182,9 @@ function make_bvh(bboxes::Array{Bbox3f,1}, high_quality::Bool)::BvhTree
 end
 
 function split_middle(
-    primitives::Array{Int32,1},
-    bboxes::Array{Bbox3f,1},
-    centers::Array{Vec3f,1},
+    primitives::Vector{Int32},
+    bboxes::Vector{Bbox3f},
+    centers::Vector{Vec3f},
     left::Int32,
     right::Int32,
 )::Tuple{Int32,Int8}
@@ -215,7 +215,7 @@ function split_middle(
     return (middle, axis)
 end
 
-function partition(f::Function, a::Array{T,1}, start::Int32, stop::Int32)::Int32 where {T}
+function partition(f::Function, a::Vector{T}, start::Int32, stop::Int32)::Int32 where {T}
     i = start
     j = stop
     while true
@@ -243,7 +243,7 @@ function intersect_scene_bvh(
     if length(bvh.nodes) == 0
         return false
     end
-    stack = Array{Int32,1}(undef, 128)
+    stack = Vector{Int32}(undef, 128)
     fill!(stack, 0)
     node_cur = 1
     stack[node_cur] = 1
@@ -318,7 +318,7 @@ function intersect_shape_bvh(
     if length(bvh.nodes) == 0
         return ShapeIntersection()
     end
-    stack = Array{Int32,1}(undef, 128)
+    stack = Vector{Int32}(undef, 128)
     fill!(stack, 0)
     node_cur = 1
     stack[node_cur] = 1
@@ -454,7 +454,7 @@ function verify_bvh(bvh)::Bool
             @printf("total %d != primitives %d\n", total, length(tree.primitives))
             return false
         end
-        seen = Array{Bool,1}(undef, total)
+        seen = Vector{Bool}(undef, total)
         for i in 1:length(seen)
             seen[i] = false
         end
