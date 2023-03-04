@@ -80,14 +80,103 @@ function trace_naive(
     scene::SceneData,
     bvh::SceneBvh,
     lights,
-    ray::Ray3f,
+    ray_::Ray3f,
     params,
 )::Tuple{Vec3f,Bool,Vec3f,Vec3f}
-    Vec3f(1, 1, 1),
-    #todo find_any=false
-    intersect_scene_bvh(bvh, scene, ray, true),
-    Vec3f(0, 0, 0),
-    Vec3f(0, 0, 0)
+    radiance = Vec3f(0, 0, 0)
+    weight = Vec3f(1, 1, 1)
+    ray = Ray3f(ray_)
+    hit = false
+    hit_albedo = Vec3f(0, 0, 0)
+    hit_normal = Vec3f(0, 0, 0)
+    opbounce = 0
+    return (
+        Vec3f(1, 1, 1),
+        #todo find_any=false
+        intersect_scene_bvh(bvh, scene, ray, true).hit,
+        Vec3f(0, 0, 0),
+        Vec3f(0, 0, 0),
+    )
+
+    # initialize
+
+    # trace  path
+    for bounce in 0:(params.bounces - 1)
+        # intersect next point
+        intersection = intersect_scene_bvh(bvh, scene, ray_, false)
+        if !intersection.hit
+            if bounce > 0 || !params.envhidden
+                radiance += weight * eval_environment(scene, ray.d)
+            end
+            break
+        end
+
+        # prepare shading point
+        outgoing = -ray.d
+        position = eval_shading_position(scene, intersection, outgoing)
+        normal = eval_shading_normal(scene, intersection, outgoing)
+        material = eval_material(scene, intersection)
+
+        # handle opacity
+        if (material.opacity < 1 && rand1f(rng) >= material.opacity)
+            if opbounce > 128
+                break
+            end
+            opbounce += 1
+            ray = (position + ray.d * 1e-2f, ray.d)
+            bounce -= 1
+            continue
+        end
+
+        # set hit variables
+        if bounce == 0
+            hit = true
+            hit_albedo = material.color
+            hit_normal = normal
+        end
+
+        # accumulate emission
+        radiance += weight * eval_emission(material, normal, outgoing)
+
+        # next direction
+        incoming = Vec3f(0, 0, 0)
+        if (material.roughness != 0)
+            incoming = sample_bsdfcos(material, normal, outgoing, rand1f(rng), rand2f(rng))
+            if (incoming == Vec3f(0, 0, 0))
+                break
+            end
+            weight *=
+                eval_bsdfcos(material, normal, outgoing, incoming) /
+                sample_bsdfcos_pdf(material, normal, outgoing, incoming)
+        else
+            incoming = sample_delta(material, normal, outgoing, rand1f(rng))
+            if (incoming == Vec3f(0, 0, 0))
+                break
+            end
+            weight *=
+                eval_delta(material, normal, outgoing, incoming) /
+                sample_delta_pdf(material, normal, outgoing, incoming)
+        end
+
+        # check weight
+        if (weight == Vec3f(0, 0, 0) || !isfinite(weight))
+            break
+        end
+
+        # russian roulette
+        if (bounce > 3)
+            rr_prob = min(0.99f0, max(weight))
+            if (rand1f(rng) >= rr_prob)
+                break
+            end
+            weight *= 1 / rr_prob
+        end
+
+        # setup next iteration
+        ray = (position, incoming)
+    end
+
+    return (radiance, hit, hit_albedo, hit_normal)
 end
 
 const SAMPLERS = [trace_path, trace_naive]
