@@ -63,7 +63,13 @@ cli_parser = ArgParseSettings()
     help = "filter image"
     arg_type = Bool
     default = false
+    "--sampler"
+    help = "sampler type"
+    arg_type = String
+    default = "path"
 end
+
+const SAMPLER_TYPES = ["path", "naive"]
 
 mutable struct Params
     scene::String
@@ -79,6 +85,7 @@ mutable struct Params
     highqualitybvh::Bool
     envhidden::Bool
     tentfilter::Bool
+    sampler::Int32
 
     function Params(
         scene::String;
@@ -94,7 +101,14 @@ mutable struct Params
         highqualitybvh = false,
         envhidden = false,
         tentfilter = false,
+        sampler = "path",
     )
+        sidx = indexin([sampler], SAMPLER_TYPES)
+        sampler = if sidx[1] == nothing
+            1
+        else
+            sidx[1]
+        end
         new(
             scene,
             output,
@@ -109,6 +123,7 @@ mutable struct Params
             highqualitybvh,
             envhidden,
             tentfilter,
+            sampler,
         )
     end
 
@@ -127,6 +142,7 @@ mutable struct Params
             params["highqualitybvh"],
             params["envhidden"],
             params["tentfilter"],
+            params["sampler"],
         )
     end
 end

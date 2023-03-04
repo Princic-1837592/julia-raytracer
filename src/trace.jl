@@ -74,6 +74,24 @@ function trace_samples(state::TraceState, scene::SceneData, bvh::SceneBvh, light
     state.samples += 1
 end
 
+function trace_path(scene::SceneData, bvh::SceneBvh, lights, ray::Ray3f, params) end
+
+function trace_naive(
+    scene::SceneData,
+    bvh::SceneBvh,
+    lights,
+    ray::Ray3f,
+    params,
+)::Tuple{Vec3f,Bool,Vec3f,Vec3f}
+    Vec3f(1, 1, 1),
+    #todo find_any=false
+    intersect_scene_bvh(bvh, scene, ray, true),
+    Vec3f(0, 0, 0),
+    Vec3f(0, 0, 0)
+end
+
+const SAMPLERS = [trace_path, trace_naive]
+
 function trace_sample(
     state::TraceState,
     scene::SceneData,
@@ -86,7 +104,7 @@ function trace_sample(
 )
     camera = scene.cameras[params.camera]
     idx = state.width * j + i + 1
-    #todo
+    #todo random
     ray = sample_camera(
         camera,
         Vec2i(i, j),
@@ -96,7 +114,8 @@ function trace_sample(
         params.tentfilter,
     )
     #todo
-    radiance, hit, albedo, normal = trace_naive(scene, bvh, lights, ray, params)
+    radiance, hit, albedo, normal =
+        SAMPLERS[params.sampler](scene, bvh, lights, ray, params)
     if !all(isfinite.(radiance))
         radiance = Vec3f(0, 0, 0)
     end
@@ -109,6 +128,11 @@ function trace_sample(
         state.normal[idx] = lerp(state.normal[idx], normal, weight)
         state.hits[idx] += 1
     elseif !params.envhidden && length(scene.environments) != 0
+        state.image[idx] =
+            lerp(state.image[idx], Vec4f(radiance.x, radiance.y, radiance.z, 1), weight)
+        state.albedo[idx] = lerp(state.albedo[idx], Vec3f(1, 1, 1), weight)
+        state.normal[idx] = lerp(state.normal[idx], -ray.d, weight)
+        state.hits[idx] += 1
     else
         state.image[idx] = lerp(state.image[idx], Vec4f(0, 0, 0, 0), weight)
         state.albedo[idx] = lerp(state.albedo[idx], Vec3f(0, 0, 0), weight)
@@ -147,20 +171,6 @@ function get_image(image::ImageData, state::TraceState)
     else
         image.data = state.denoised
     end
-end
-
-function trace_naive(
-    scene::SceneData,
-    bvh::SceneBvh,
-    lights,
-    ray::Ray3f,
-    params,
-)::Tuple{Vec3f,Bool,Vec3f,Vec3f}
-    Vec3f(1, 1, 1),
-    #todo find_any=false
-    intersect_scene_bvh(bvh, scene, ray, true),
-    Vec3f(0, 0, 0),
-    Vec3f(0, 0, 0)
 end
 
 end
