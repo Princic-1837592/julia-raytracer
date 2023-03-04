@@ -20,7 +20,9 @@ using ..Math:
     transform_direction
 using ..Shape: ShapeData
 using ..Geometry: Ray3f
-# using FileIO: load
+using Images: load
+using ImageMagick: load_
+using Printf: @printf
 
 const invalid_id = -1
 
@@ -87,32 +89,34 @@ mutable struct TextureData
 end
 
 function load_texture(path::String, texture::TextureData)::Bool
-    return true
-    #     extension = lowercase(splitext(path)[2])
-    #     if extension == ".hdr"
-    #         #todo
-    #     elseif extension == ".png"
-    #         #         bytes = Array{UInt8}(undef, filesize(path))
-    #         #         read!(path, bytes)
-    #         #         println("bytes: ", length(bytes))
-    #         img = load(path)
-    #         println(length(img))
-    #         (texture.width, texture.height) = size(img)
-    #         println("width: $(texture.width) height: $(texture.height)")
-    #         #         println("$(img[0]) $(img[0].r) $(img[0].g) $(img[0].b) $(img[0].alpha)")
-    #         #         println(img[0, 0])
-    #         texture.pixelsb = Array{Vec4b,1}(undef, texture.width * texture.height)
-    #         for i in 1:(texture.width)
-    #             for j in 1:(texture.height)
-    #                 texture.pixelsb[i + (j - 1) * texture.width] =
-    #                     Vec4b(img[i].r, img[i].g, img[i].b, img[i].alpha)
-    #             end
-    #         end
-    #         return true
-    #     else
-    #         println("unknown texture format: ", extension)
-    #     end
+    extension = lowercase(splitext(path)[2])
+    if extension == ".hdr"
+        #todo
+    elseif extension == ".png"
+        bytes = Array{UInt8}(undef, filesize(path))
+        read!(path, bytes)
+        println("bytes: ", length(bytes))
+        img = load_(bytes)
+        println("img: ", length(img))
+        img = load(path)
+        println("img: ", size(img))
+        #         @printf(
+        #             "texture %s\n%.5f %.5f %.5f %.5f\n%.5f %.5f %.5f %.5f\n",
+        #             path,
+        #             img[1, 1].r,
+        #             img[1, 1].g,
+        #             img[1, 1].b,
+        #             img[1, 1].alpha,
+        #             img[1, 2].r,
+        #             img[1, 2].g,
+        #             img[1, 2].b,
+        #             img[1, 2].alpha,
+        #         )
+    else
+        println("unknown texture format: ", extension)
+    end
     #     return false
+    true
 end
 
 @enum MaterialType begin
