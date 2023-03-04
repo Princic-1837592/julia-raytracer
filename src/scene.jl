@@ -20,8 +20,7 @@ using ..Math:
     transform_direction
 using ..Shape: ShapeData
 using ..Geometry: Ray3f
-using Images: load
-using ImageMagick: load_
+using ImageMagick: load, load_
 using Printf: @printf
 
 const invalid_id = -1
@@ -91,7 +90,29 @@ end
 function load_texture(path::String, texture::TextureData)::Bool
     extension = lowercase(splitext(path)[2])
     if extension == ".hdr"
-        #todo
+        #todo fix wrong values
+        #         bytes = Vector{UInt8}(undef, filesize(path))
+        #         read!(path, bytes)
+        img = load(path)
+        texture.height, texture.width = size(img)
+        texture.linear = true
+        texture.pixelsf = Vector{Vec4f}(undef, length(img))
+        for i in 1:length(img)
+            texture.pixelsf[i] = Vec4f(img[i])
+        end
+        #         @printf(
+        #             "%d %d\n%.5f %.5f %.5f %.5f\n%.5f %.5f %.5f %.5f\n",
+        #             texture.width,
+        #             texture.height,
+        #             texture.pixelsf[1][1],
+        #             texture.pixelsf[1][2],
+        #             texture.pixelsf[1][3],
+        #             texture.pixelsf[1][4],
+        #             last(texture.pixelsf)[1],
+        #             last(texture.pixelsf)[2],
+        #             last(texture.pixelsf)[3],
+        #             last(texture.pixelsf)[4],
+        #         )
     elseif extension == ".png"
         bytes = Vector{UInt8}(undef, filesize(path))
         read!(path, bytes)
@@ -104,8 +125,8 @@ function load_texture(path::String, texture::TextureData)::Bool
         end
     else
         println("unknown texture format: ", extension)
+        return false
     end
-    #     return false
     true
 end
 

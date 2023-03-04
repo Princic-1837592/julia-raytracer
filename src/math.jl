@@ -8,7 +8,7 @@ math:
 module Math
 
 using StaticArrays: SVector
-using Images: RGBA
+using Images: RGBA, RGB
 
 const pif = Float32(pi)
 
@@ -25,6 +25,7 @@ const Vec3f = SVector{3,Float32}
 Vec3f() = Vec3f(0, 0, 0)
 const Vec4f = SVector{4,Float32}
 Vec4f() = Vec4f(0, 0, 0, 0)
+Vec4f(r::RGB) = Vec4f(r.r, r.g, r.b, 1)
 
 const Vec4b = SVector{4,UInt8}
 Vec4b() = Vec4b(0, 0, 0, 0)
