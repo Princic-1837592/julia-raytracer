@@ -55,11 +55,12 @@ function main(params::Params)
     println("tracing samples...")
     for _sample in 1:(params.samples)
         trace_samples(state, scene, bvh, lights, params)
-        println("rander sample $(state.samples)/$(params.samples)")
+        println("rander sample ", state.samples, "/", params.samples)
     end
     println("saving image...")
     image = get_image(state)
     save_image(params.output, image)
+    println("saved image to ", params.output)
 end
 
 using JuliaFormatter: format
