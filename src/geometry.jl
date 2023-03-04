@@ -80,27 +80,11 @@ center(bbox::Bbox3f)::Vec3f = (bbox.min + bbox.max) / 2
 function intersect_bbox(ray::Ray3f, ray_dinv::Vec3f, bbox::Bbox3f)::Bool
     it_min = (bbox.min - ray.o) .* ray_dinv
     it_max = (bbox.max - ray.o) .* ray_dinv
-    tmin = min(it_min, it_max)
-    tmax = max(it_min, it_max)
+    tmin = min.(it_min, it_max)
+    tmax = max.(it_min, it_max)
     t0 = max(findmax(tmin)[1], ray.tmin)
-    t1 = min(findmax(tmax)[1], ray.tmax)
+    t1 = min(findmin(tmax)[1], ray.tmax)
     t1 *= 1.00000024  # for double: 1.0000000000000004
-#     @printf(
-#         "%f %f %f %f %f %f %f %f %f %f %f %f %f\n",
-#         t0,
-#         t1,
-#         ray.tmin,
-#         ray.tmax,
-#         ray_dinv[1],
-#         ray_dinv[2],
-#         ray_dinv[3],
-#         bbox.min[1],
-#         bbox.min[2],
-#         bbox.min[3],
-#         bbox.max[1],
-#         bbox.max[2],
-#         bbox.max[3]
-#     )
     t0 <= t1
 end
 
