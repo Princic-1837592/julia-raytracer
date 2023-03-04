@@ -36,6 +36,23 @@ struct ShapeIntersection
         new(element, uv, distance, hit)
 end
 
+struct SceneIntersection
+    instance :: Int32
+    element  :: Int32
+    uv       :: Vec2f
+    distance :: Float32
+    hit      :: Bool
+
+    SceneIntersection() = new(-1, -1, Vec2f(0.0, 0.0), 0.0, false)
+    SceneIntersection(
+        instance::Int32,
+        element::Int32,
+        uv::Vec2f,
+        distance::Float32,
+        hit::Bool,
+    ) = new(instance, element, uv, distance, hit)
+end
+
 function load_shape(path::String, shape::ShapeData)::Bool
     if lowercase(splitext(path)[2]) != ".ply"
         return false

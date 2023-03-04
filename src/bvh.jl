@@ -8,7 +8,7 @@ bvh:
 module Bvh
 
 using ..Scene: SceneData, ShapeData
-using ..Shape: ShapeIntersection
+using ..Shape: ShapeIntersection, SceneIntersection
 using ..Math: Vec3f, Frame3f, Vec3i, inverse
 using ..Geometry:
     point_bounds,
@@ -238,7 +238,7 @@ function intersect_scene_bvh(
     scene::SceneData,
     ray_::Ray3f,
     find_any::Bool,
-)::Bool
+)::SceneIntersection
     bvh = sbvh.bvh
     if length(bvh.nodes) == 0
         return false
@@ -248,7 +248,7 @@ function intersect_scene_bvh(
     node_cur = 1
     stack[node_cur] = 1
     node_cur += 1
-    hit = false
+    intersection = SceneIntersection()
     ray = Ray3f(ray_.o, ray_.d, ray_.tmin, ray_.tmax)
     ray_dinv = Vec3f(1 / ray.d[1], 1 / ray.d[2], 1 / ray.d[3])
     ray_dsign = Vec3i(if ray.d[1] < 0
@@ -295,17 +295,21 @@ function intersect_scene_bvh(
                 if !sintersection.hit
                     continue
                 end
-                if find_any
-                    return true
-                end
-                hit = true
+                intersection = SceneIntersection(
+                    bvh.primitives[i],
+                    sintersection.element,
+                    sintersection.uv,
+                    sintersection.distance,
+                    true,
+                )
+                ray.tmax = sintersection.distance
             end
         end
-        if find_any && hit
-            return true
+        if find_any && intersection.hit
+            return intersection
         end
     end
-    hit
+    intersection
 end
 
 function intersect_shape_bvh(

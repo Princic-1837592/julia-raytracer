@@ -33,6 +33,7 @@ mutable struct Ray3f
     Ray3f() = new(Vec3f(0, 0, 0), Vec3f(0, 0, 1), ray_eps, typemax(Float32))
     Ray3f(o::Vec3f, d::Vec3f) = new(o, d, ray_eps, typemax(Float32))
     Ray3f(o::Vec3f, d::Vec3f, tmin::Float32, tmax::Float32) = new(o, d, tmin, tmax)
+    Ray3f(ray::Ray3f) = new(ray.o, ray.d, ray.tmin, ray.tmax)
 end
 
 mutable struct PrimIntersection
