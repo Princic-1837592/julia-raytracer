@@ -24,7 +24,7 @@ end
 
 const ray_eps::Float32 = 1e-4
 
-struct Ray3f
+mutable struct Ray3f
     o    :: Vec3f
     d    :: Vec3f
     tmin :: Float32
@@ -35,7 +35,7 @@ struct Ray3f
     Ray3f(o::Vec3f, d::Vec3f, tmin::Float32, tmax::Float32) = new(o, d, tmin, tmax)
 end
 
-struct PrimIntersection
+mutable struct PrimIntersection
     uv       :: Vec2f
     distance :: Float32
     hit      :: Bool
@@ -127,8 +127,8 @@ function intersect_line(
     r2::Float32,
 )::PrimIntersection
     u = ray.d
-    v = p1 - p0
-    w = ray.o - p0
+    v = p2 - p1
+    w = ray.o - p1
 
     a = dot(u, u)
     b = dot(u, v)
@@ -151,11 +151,11 @@ function intersect_line(
     s = clamp(s, 0.0, 1.0)
 
     pr = ray.o + ray.d * t
-    pl = p0 + (p1 - p0) * s
+    pl = p1 + (p2 - p1) * s
     prl = pr - pl
 
     d2 = dot(prl, prl)
-    r = r0 * (1 - s) + r1 * s
+    r = r1 * (1 - s) + r2 * s
     if (d2 > r * r)
         return PrimIntersection()
     end
@@ -234,13 +234,13 @@ function intersect_quad(
     p3::Vec3f,
     p4::Vec3f,
 )::PrimIntersection
-    if (p2 == p3)
-        return intersect_triangle(ray, p0, p1, p3)
+    if (p3 == p4)
+        return intersect_triangle(ray, p1, p2, p4)
     end
-    isec1 = intersect_triangle(ray, p0, p1, p3)
-    isec2 = intersect_triangle(ray, p2, p3, p1)
+    isec1 = intersect_triangle(ray, p1, p2, p4)
+    isec2 = intersect_triangle(ray, p3, p4, p2)
     if (isec2.hit)
-        isec2.uv = 1 - isec2.uv
+        isec2.uv = 1 .- isec2.uv
     end
     if isec1.distance < isec2.distance
         isec1

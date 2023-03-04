@@ -22,7 +22,10 @@ using ..Geometry:
     Ray3f,
     intersect_bbox,
     transform_ray,
-    intersect_triangle
+    intersect_point,
+    intersect_line,
+    intersect_triangle,
+    intersect_quad
 using DataStructures: Stack
 using Printf: @printf
 
@@ -283,12 +286,13 @@ function intersect_scene_bvh(
             for i in (node.start):(node.start + node.num - 1)
                 instance = scene.instances[bvh.primitives[i]]
                 inv_ray = transform_ray(inverse(instance.frame, true), ray)
-                if !intersect_shape_bvh(
+                sintersection = intersect_shape_bvh(
                     sbvh.shapes[instance.shape],
                     scene.shapes[instance.shape],
                     inv_ray,
                     find_any,
                 )
+                if !sintersection.hit
                     continue
                 end
                 if find_any
@@ -309,17 +313,17 @@ function intersect_shape_bvh(
     shape::ShapeData,
     ray_::Ray3f,
     find_any::Bool,
-)::Bool
+)::ShapeIntersection
     bvh = sbvh.bvh
     if length(bvh.nodes) == 0
-        return false
+        return ShapeIntersection()
     end
     stack = Array{Int32,1}(undef, 128)
     fill!(stack, 0)
     node_cur = 1
     stack[node_cur] = 1
     node_cur += 1
-    hit = false
+    intersection = ShapeIntersection()
     ray = Ray3f(ray_.o, ray_.d, ray_.tmin, ray_.tmax)
     ray_dinv = Vec3f(1 / ray.d[1], 1 / ray.d[2], 1 / ray.d[3])
     ray_dsign = Vec3i(if ray.d[1] < 0
@@ -353,6 +357,42 @@ function intersect_shape_bvh(
                 stack[node_cur] = node.start
                 node_cur += 1
             end
+        elseif length(shape.points) > 0
+            for i in (node.start):(node.start + node.num - 1)
+                p = shape.points[bvh.primitives[i]]
+                pintersection = intersect_point(ray, shape.positions[p], shape.radius[p])
+                if !pintersection.hit
+                    continue
+                end
+                intersection = ShapeIntersection(
+                    bvh.primitives[i],
+                    pintersection.uv,
+                    pintersection.distance,
+                    true,
+                )
+                ray.tmax = pintersection.distance
+            end
+        elseif length(shape.lines) > 0
+            for i in (node.start):(node.start + node.num - 1)
+                l = shape.lines[bvh.primitives[i]]
+                pintersection = intersect_line(
+                    ray,
+                    shape.positions[l[1]],
+                    shape.positions[l[2]],
+                    shape.radius[l[1]],
+                    shape.radius[l[2]],
+                )
+                if !pintersection.hit
+                    continue
+                end
+                intersection = ShapeIntersection(
+                    bvh.primitives[i],
+                    pintersection.uv,
+                    pintersection.distance,
+                    true,
+                )
+                ray.tmax = pintersection.distance
+            end
         elseif length(shape.triangles) > 0
             for i in (node.start):(node.start + node.num - 1)
                 t = shape.triangles[bvh.primitives[i]]
@@ -365,14 +405,41 @@ function intersect_shape_bvh(
                 if !pintersection.hit
                     continue
                 end
-                if find_any
-                    return true
+                intersection = ShapeIntersection(
+                    bvh.primitives[i],
+                    pintersection.uv,
+                    pintersection.distance,
+                    true,
+                )
+                ray.tmax = pintersection.distance
+            end
+        elseif length(shape.quads) > 0
+            for i in (node.start):(node.start + node.num - 1)
+                q = shape.quads[bvh.primitives[i]]
+                pintersection = intersect_quad(
+                    ray,
+                    shape.positions[q[1]],
+                    shape.positions[q[2]],
+                    shape.positions[q[3]],
+                    shape.positions[q[4]],
+                )
+                if !pintersection.hit
+                    continue
                 end
-                hit = true
+                intersection = ShapeIntersection(
+                    bvh.primitives[i],
+                    pintersection.uv,
+                    pintersection.distance,
+                    true,
+                )
+                ray.tmax = pintersection.distance
             end
         end
+        if find_any && intersection.hit
+            return intersection
+        end
     end
-    hit
+    intersection
 end
 
 function verify_bvh(bvh)::Bool

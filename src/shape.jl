@@ -32,6 +32,8 @@ struct ShapeIntersection
     hit      :: Bool
 
     ShapeIntersection() = new(-1, Vec2f(0.0, 0.0), 0.0, false)
+    ShapeIntersection(element::Int32, uv::Vec2f, distance::Float32, hit::Bool) =
+        new(element, uv, distance, hit)
 end
 
 function load_shape(path::String, shape::ShapeData)::Bool
