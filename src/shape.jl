@@ -25,6 +25,15 @@ mutable struct ShapeData
     ShapeData() = new()
 end
 
+struct ShapeIntersection
+    element  :: Int32
+    uv       :: Vec2f
+    distance :: Float32
+    hit      :: Bool
+
+    ShapeIntersection() = new(-1, Vec2f(0.0, 0.0), 0.0, false)
+end
+
 function load_shape(path::String, shape::ShapeData)::Bool
     if lowercase(splitext(path)[2]) != ".ply"
         return false
