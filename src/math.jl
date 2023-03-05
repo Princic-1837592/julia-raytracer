@@ -26,6 +26,7 @@ Vec3f() = Vec3f(0, 0, 0)
 const Vec4f = SVector{4,Float32}
 Vec4f() = Vec4f(0, 0, 0, 0)
 Vec4f(r::RGB) = Vec4f(r.r, r.g, r.b, 1)
+Vec3f(vec4f::Vec4f) = Vec3f(vec4f[1], vec4f[2], vec4f[3])
 
 const Vec4b = SVector{4,UInt8}
 Vec4b() = Vec4b(0, 0, 0, 0)
@@ -119,5 +120,7 @@ transform_normal(a::Frame3f, b::Vec3f, non_rigid::Bool = false) =
     else
         normalize(transform_vector(a, b))
     end
+
+orthonormalize(a::Vec3f, b::Vec3f)::Vec3f = normalize(a - b * dot(a, b))
 
 end

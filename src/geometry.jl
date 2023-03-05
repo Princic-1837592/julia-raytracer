@@ -270,4 +270,58 @@ interpolate_quad(p1, p2, p3, p4, uv::Vec2f) =
         interpolate_triangle(p3, p4, p2, 1 .- uv)
     end
 
+function triangle_tangents_fromuv(
+    p1::Vec3f,
+    p2::Vec3f,
+    p3::Vec3f,
+    uv1::Vec2f,
+    uv2::Vec2f,
+    uv3::Vec2f,
+)::Tuple{Vec3f,Vec3f}
+    #   // Follows the definition in http://www.terathon.com/code/tangent.html and
+    #   // https://gist.github.com/aras-p/2843984
+    #   // normal points up from texture space
+    p = p2 - p1
+    q = p3 - p1
+    s = Vec2f(uv2[1] - uv1[1], uv3[1] - uv1[1])
+    t = Vec2f(uv2[2] - uv1[2], uv3[2] - uv1[2])
+    div = s[1] * t[2] - s[2] * t[1]
+
+    if (div != 0)
+        tu =
+            Vec3f(
+                t[2] * p[1] - t[1] * q[1],
+                t[2] * p[2] - t[1] * q[2],
+                t[2] * p[3] - t[1] * q[3],
+            ) / div
+        tv =
+            Vec3f(
+                s[1] * q[1] - s[2] * p[1],
+                s[1] * q[2] - s[2] * p[2],
+                s[1] * q[3] - s[2] * p[3],
+            ) / div
+        (tu, tv)
+    else
+        (Vec3f(1, 0, 0), Vec3f(0, 1, 0))
+    end
+end
+
+function quad_tangents_fromuv(
+    p1::Vec3f,
+    p2::Vec3f,
+    p3::Vec3f,
+    p4::Vec3f,
+    uv1::Vec2f,
+    uv2::Vec2f,
+    uv3::Vec2f,
+    uv4::Vec2f,
+    current_uv::Vec2f,
+)::Tuple{Vec3f,Vec3f}
+    if (current_uv[1] + current_uv[2] <= 1)
+        triangle_tangents_fromuv(p1, p2, p4, uv1, uv2, uv4)
+    else
+        triangle_tangents_fromuv(p3, p4, p2, uv3, uv4, uv2)
+    end
+end
+
 end

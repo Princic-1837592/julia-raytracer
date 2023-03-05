@@ -15,12 +15,15 @@ using ..Math:
     Vec4f,
     Vec4b,
     Vec4i,
+    Vec2i,
     normalize,
     transform_point,
     transform_direction,
     cross,
     dot,
-    transform_normal
+    transform_normal,
+    orthonormalize
+using ..Color: byte_to_float
 using ..Shape: ShapeData
 using ..Geometry:
     Ray3f,
@@ -28,7 +31,9 @@ using ..Geometry:
     triangle_normal,
     interpolate_quad,
     interpolate_triangle,
-    interpolate_line
+    interpolate_line,
+    triangle_tangents_fromuv,
+    quad_tangents_fromuv
 using ImageMagick: load, load_
 using Printf: @printf
 
@@ -93,7 +98,7 @@ mutable struct TextureData
     pixelsf :: Vector{Vec4f}
     pixelsb :: Vector{Vec4b}
 
-    TextureData() = new()
+    TextureData() = new(0, 0, false, Vector{Vec4f}(), Vector{Vec4b}())
 end
 
 function load_texture(path::String, texture::TextureData)::Bool
@@ -552,17 +557,20 @@ function eval_normalmap(
     if material.normal_tex != invalid_id &&
        (length(shape.triangles) != 0 || length(shape.quads) != 0)
         normal_tex = scene.textures[material.normal_tex]
-        normalmap = -1 + 2 * xyz(eval_texture(normal_tex, texcoord, false))
+        #todo check order of operations
+        normalmap = Vec3f(eval_texture(normal_tex, texcoord, false)) .* 2 .- 1
         (tu, tv) = eval_element_tangents(scene, instance, element)
         frame = Frame3f(tu, tv, normal, Vec3f(0, 0, 0))
-        frame[1] = orthonormalize(frame[1], frame[3])
-        frame[2] = normalize(cross(frame[3], frame[1]))
+        f1 = orthonormalize(frame[1], frame[3])
+        f2 = normalize(cross(frame[3], frame[1]))
+        frame = Frame3f(f1, f2, frame[3], frame[4])
         flip_v = dot(frame[2], tv) < 0
-        normalmap[2] *= if flip_v
+        n2 = normalmap[2] * if flip_v
             1
         else
             -1
         end
+        normalmap = Vec3f(normalmap[1], n2, normalmap[3])
         normal = transform_normal(frame, normalmap)
     end
     normal
@@ -601,7 +609,110 @@ function eval_texcoord(
     elseif (length(shape.points) != 0)
         shape.texcoords[shape.points[element]]
     else
-        vec2f{0,0}
+        Vec2f(0, 0)
+    end
+end
+
+function eval_texture(
+    texture::TextureData,
+    uv::Vec2f,
+    as_linear::Bool,
+    no_interpolation::Bool = false,
+    clamp_to_edge::Bool = false,
+)::Vec4f
+    if (texture.width == 0 || texture.height == 0)
+        return Vec4f(0, 0, 0, 0)
+    end
+
+    size = Vec2i(texture.width, texture.height)
+
+    s = 0.0f0
+    t = 0.0f0
+    if (clamp_to_edge)
+        s = clamp(uv[1], 0.0f0, 1.0f0) * size[1]
+        t = clamp(uv[2], 0.0f0, 1.0f0) * size[2]
+    else
+        #todo check fmod
+        s = mod1(uv[1], 1.0f0) * size[1]
+        if (s < 0)
+            s += size[1]
+        end
+        t = mod1(uv[2], 1.0f0) * size[2]
+        if (t < 0)
+            t += size[2]
+        end
+    end
+
+    i::Int32 = clamp(trunc(Int32, s), 0, size[1] - 1)
+    j::Int32 = clamp(trunc(Int32, t), 0, size[2] - 1)
+    ii::Int32 = (i + 1) % size[1]
+    jj::Int32 = (j + 1) % size[2]
+    u = s - i
+    v = t - j
+
+    if (no_interpolation)
+        lookup_texture(texture, i, j, as_linear)
+    else
+        lookup_texture(texture, i, j, as_linear) * (1 - u) * (1 - v) +
+        lookup_texture(texture, i, jj, as_linear) * (1 - u) * v +
+        lookup_texture(texture, ii, j, as_linear) * u * (1 - v) +
+        lookup_texture(texture, ii, jj, as_linear) * u * v
+    end
+end
+
+function lookup_texture(texture::TextureData, i::Int32, j::Int32, as_linear::Bool)::Vec4f
+    color = Vec4f(0, 0, 0, 0)
+    if (length(texture.pixelsf) != 0)
+        color = texture.pixelsf[j * texture.width + i]
+    else
+        color = byte_to_float(texture.pixelsb[j * texture.width + i])
+    end
+    if (as_linear && !texture.linear)
+        srgb_to_rgb(color)
+    else
+        color
+    end
+end
+
+function eval_element_tangents(
+    scene::SceneData,
+    instance::InstanceData,
+    element::Int32,
+)::Tuple{Vec3f,Vec3f}
+    shape = scene.shapes[instance.shape]
+    if (length(shape.triangles) != 0 && length(shape.texcoords) != 0)
+        t = shape.triangles[element]
+        (tu, tv) = triangle_tangents_fromuv(
+            shape.positions[t[1]],
+            shape.positions[t[2]],
+            shape.positions[t[3]],
+            shape.texcoords[t[1]],
+            shape.texcoords[t[2]],
+            shape.texcoords[t[3]],
+        )
+        return (
+            transform_direction(instance.frame, tu),
+            transform_direction(instance.frame, tv),
+        )
+    elseif (length(shape.quads) != 0 && length(shape.texcoords) != 0)
+        q = shape.quads[element]
+        (tu, tv) = quad_tangents_fromuv(
+            shape.positions[q[1]],
+            shape.positions[q[2]],
+            shape.positions[q[3]],
+            shape.positions[q[4]],
+            shape.texcoords[q[1]],
+            shape.texcoords[q[2]],
+            shape.texcoords[q[3]],
+            shape.texcoords[q[4]],
+            Vec2f(0, 0),
+        )
+        return (
+            transform_direction(instance.frame, tu),
+            transform_direction(instance.frame, tv),
+        )
+    else
+        return (Vec3f(), Vec3f())
     end
 end
 

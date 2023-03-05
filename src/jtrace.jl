@@ -9,6 +9,7 @@ module Jtrace
 
 include("cli.jl")
 include("math.jl")
+include("color.jl")
 include("sampling.jl")
 include("geometry.jl")
 include("image.jl")
@@ -30,7 +31,6 @@ function main(params::Params)
     end
     println("loading scene...")
     scene = load_scene(params.scene, params.noparallel)
-    #     dump(scene)
     if params.addsky
         println("adding sky...")
         add_sky(scene)
@@ -80,7 +80,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
     main()
 else
     format(pwd(); overwrite = true)
-    #     scene = "tests/features1/features1"
+    #         scene = "tests/features1/features1"
     scene = "tests/features1/shapes_only"
     #     scene = "tests/features1/bunny"
     #     scene = "tests/features2/features2"
@@ -100,8 +100,9 @@ else
             "$(scene).json";
             output = "$(scene).png",
             samples = 1,
-            resolution = 500,
+            resolution = 100,
             sampler = "naive",
+            envhidden = true,
         ),
     )
 end

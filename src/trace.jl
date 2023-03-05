@@ -97,13 +97,13 @@ function trace_naive(
     hit_albedo = Vec3f(0, 0, 0)
     hit_normal = Vec3f(0, 0, 0)
     opbounce = 0
-    return (
-        Vec3f(1, 1, 1),
-        #todo find_any=false
-        intersect_scene_bvh(bvh, scene, ray, true).hit,
-        Vec3f(0, 0, 0),
-        Vec3f(0, 0, 0),
-    )
+    #     return (
+    #         Vec3f(1, 1, 1),
+    #         #todo find_any=false
+    #         intersect_scene_bvh(bvh, scene, ray, true).hit,
+    #         Vec3f(0, 0, 0),
+    #         Vec3f(0, 0, 0),
+    #     )
 
     # initialize
 
@@ -140,6 +140,7 @@ function trace_naive(
             intersection.element,
             intersection.uv,
         )
+        println(position, " ", normal, " ", material.color, " ", material.opacity)
 
         #handle opacity
         if (material.opacity < 1 && rand1f(rng) >= material.opacity)
