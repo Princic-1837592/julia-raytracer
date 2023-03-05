@@ -72,18 +72,36 @@ function main(params::Params)
     println("saved image to ", params.output)
 end
 
+main() = main(parse_cli_args(ARGS))
+
 using JuliaFormatter: format
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    main(parse_cli_args(ARGS))
+    main()
 else
     format(pwd(); overwrite = true)
+    #     scene = "tests/features1/features1"
+    scene = "tests/features1/shapes_only"
+    #     scene = "tests/features1/bunny"
+    #     scene = "tests/features2/features2"
+    #     scene = "tests/features2/shapes_only"
+    #     scene = "tests/materials1/materials1"
+    #     scene = "tests/materials1/shapes_only"
+    #     scene = "tests/materials2/materials2"
+    #     scene = "tests/materials2/shapes_only"
+    #     scene = "tests/materials4/materials4"
+    #     scene = "tests/materials4/shapes_only"
+    #     scene = "tests/shapes1/shapes1"
+    #     scene = "tests/shapes1/shapes_only"
+    #     scene = "tests/shapes2/shapes2"
+    #     scene = "tests/shapes2/shapes_only"
     main(
         Params(
-            "tests/features1/bunny.json";
-            output = "tests/test_scene.png",
+            "$(scene).json";
+            output = "$(scene).png",
             samples = 1,
-            resolution = 100,
+            resolution = 500,
+            sampler = "naive",
         ),
     )
 end

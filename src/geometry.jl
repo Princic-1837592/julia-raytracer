@@ -92,9 +92,9 @@ function intersect_bbox(ray::Ray3f, ray_dinv::Vec3f, bbox::Bbox3f)::Bool
     it_max = (bbox.max - ray.o) .* ray_dinv
     tmin = min.(it_min, it_max)
     tmax = max.(it_min, it_max)
-    t0 = max(findmax(tmin)[1], ray.tmin)
-    t1 = min(findmin(tmax)[1], ray.tmax)
-    t1 *= 1.00000024  # for double: 1.0000000000000004
+    t0 = max(maximum(tmin), ray.tmin)
+    t1 = min(minimum(tmax), ray.tmax)
+    t1 *= 1.00000024
     t0 <= t1
 end
 
@@ -257,5 +257,17 @@ triangle_normal(p1::Vec3f, p2::Vec3f, p3::Vec3f) = normalize(cross(p2 - p1, p3 -
 
 quad_normal(p1::Vec3f, p2::Vec3f, p3::Vec3f, p4::Vec3f) =
     normalize(triangle_normal(p1, p2, p4) + triangle_normal(p3, p4, p2))
+
+interpolate_line(p1, p2, u::Float32) = p1 * (1 - u) + p2 * u
+
+interpolate_triangle(p1, p2, p3, uv::Vec2f) =
+    p1 * (1 .- uv.x .- uv.y) + p2 * uv.x + p3 * uv.y
+
+interpolate_quad(p1, p2, p3, p4, uv::Vec2f) =
+    if (uv.x + uv.y <= 1)
+        interpolate_triangle(p1, p2, p4, uv)
+    else
+        interpolate_triangle(p3, p4, p2, 1 .- uv)
+    end
 
 end

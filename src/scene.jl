@@ -22,7 +22,13 @@ using ..Math:
     dot,
     transform_normal
 using ..Shape: ShapeData
-using ..Geometry: Ray3f, quad_normal, triangle_normal
+using ..Geometry:
+    Ray3f,
+    quad_normal,
+    triangle_normal,
+    interpolate_quad,
+    interpolate_triangle,
+    interpolate_line
 using ImageMagick: load, load_
 using Printf: @printf
 
@@ -402,19 +408,6 @@ function eval_position(
     end
 end
 
-interpolate_line(p1::Vec3f, p2::Vec3f, u::Float32) = p1 * (1 - u) + p2 * u
-
-interpolate_triangle(p1::Vec3f, p2::Vec3f, p3::Vec3f, uv::Vec2f) =
-    p1 * (1 .- uv.x .- uv.y) + p2 * uv.x + p3 * uv.y
-
-function interpolate_quad(p1::Vec3f, p2::Vec3f, p3::Vec3f, p4::Vec3f, uv::Vec2f)
-    if (uv.x + uv.y <= 1)
-        return interpolate_triangle(p1, p2, p4, uv)
-    else
-        return interpolate_triangle(p3, p4, p2, 1 .- uv)
-    end
-end
-
 function eval_shading_normal(
     scene::SceneData,
     instance::InstanceData,
@@ -457,40 +450,40 @@ function eval_normal(
     if length(shape.normals) != 0
         return eval_element_normal(scene, instance, element)
     end
-    if length(!shape.triangles) != 0
+    if length(shape.triangles) != 0
         t = shape.triangles[element]
         return transform_normal(
             instance.frame,
             normalize(
                 interpolate_triangle(
-                    shape.normals[t.x],
-                    shape.normals[t.y],
-                    shape.normals[t.z],
+                    shape.normals[t[1]],
+                    shape.normals[t[2]],
+                    shape.normals[t[3]],
                     uv,
                 ),
             ),
         )
-    elseif length(!shape.quads) != 0
+    elseif length(shape.quads) != 0
         q = shape.quads[element]
         return transform_normal(
             instance.frame,
             normalize(
                 interpolate_quad(
-                    shape.normals[q.x],
-                    shape.normals[q.y],
-                    shape.normals[q.z],
-                    shape.normals[q.w],
+                    shape.normals[q[1]],
+                    shape.normals[q[2]],
+                    shape.normals[q[3]],
+                    shape.normals[q[4]],
                     uv,
                 ),
             ),
         )
-    elseif length(!shape.lines) != 0
+    elseif length(shape.lines) != 0
         l = shape.lines[element]
         return transform_normal(
             instance.frame,
-            normalize(interpolate_line(shape.normals[l.x], shape.normals[l.y], uv.x)),
+            normalize(interpolate_line(shape.normals[l[1]], shape.normals[l[2]], uv[1])),
         )
-    elseif length(!shape.points) != 0
+    elseif length(shape.points) != 0
         return transform_normal(
             instance.frame,
             normalize(shape.normals[shape.points[element]]),
@@ -511,9 +504,9 @@ function eval_element_normal(
         return transform_normal(
             instance.frame,
             triangle_normal(
-                shape.positions[t.x],
-                shape.positions[t.y],
-                shape.positions[t.z],
+                shape.positions[t[1]],
+                shape.positions[t[2]],
+                shape.positions[t[3]],
             ),
         )
     elseif length(shape.quads) != 0
@@ -521,17 +514,17 @@ function eval_element_normal(
         return transform_normal(
             instance.frame,
             quad_normal(
-                shape.positions[q.x],
-                shape.positions[q.y],
-                shape.positions[q.z],
-                shape.positions[q.w],
+                shape.positions[q[1]],
+                shape.positions[q[2]],
+                shape.positions[q[3]],
+                shape.positions[q[4]],
             ),
         )
     elseif length(shape.lines) != 0
         l = shape.lines[element]
         return transform_normal(
             instance.frame,
-            line_tangent(shape.positions[l.x], shape.positions[l.y]),
+            line_tangent(shape.positions[l[1]], shape.positions[l[2]]),
         )
     elseif length(shape.points) != 0
         return Vec3f(0, 0, 1)
@@ -544,6 +537,72 @@ end
 function eval_material(scene::SceneData, instance::InstanceData, element::Int32, uv::Vec2f)
     #todo
     MaterialPoint(Vec3f(1, 1, 1), Vec3f(1, 1, 1))
+end
+
+function eval_normalmap(
+    scene::SceneData,
+    instance::InstanceData,
+    element::Int32,
+    uv::Vec2f,
+)::Vec3f
+    shape = scene.shapes[instance.shape]
+    material = scene.materials[instance.material]
+    normal = eval_normal(scene, instance, element, uv)
+    texcoord = eval_texcoord(scene, instance, element, uv)
+    if material.normal_tex != invalid_id &&
+       (length(shape.triangles) != 0 || length(shape.quads) != 0)
+        normal_tex = scene.textures[material.normal_tex]
+        normalmap = -1 + 2 * xyz(eval_texture(normal_tex, texcoord, false))
+        (tu, tv) = eval_element_tangents(scene, instance, element)
+        frame = Frame3f(tu, tv, normal, Vec3f(0, 0, 0))
+        frame[1] = orthonormalize(frame[1], frame[3])
+        frame[2] = normalize(cross(frame[3], frame[1]))
+        flip_v = dot(frame[2], tv) < 0
+        normalmap[2] *= if flip_v
+            1
+        else
+            -1
+        end
+        normal = transform_normal(frame, normalmap)
+    end
+    normal
+end
+
+function eval_texcoord(
+    scene::SceneData,
+    instance::InstanceData,
+    element::Int32,
+    uv::Vec2f,
+)::Vec2f
+    shape = scene.shapes[instance.shape]
+    if (length(shape.texcoords) == 0)
+        return uv
+    end
+    if (length(shape.triangles) != 0)
+        t = shape.triangles[element]
+        interpolate_triangle(
+            shape.texcoords[t[1]],
+            shape.texcoords[t[2]],
+            shape.texcoords[t[3]],
+            uv,
+        )
+    elseif (length(shape.quads) != 0)
+        q = shape.quads[element]
+        interpolate_quad(
+            shape.texcoords[q[1]],
+            shape.texcoords[q[2]],
+            shape.texcoords[q[3]],
+            shape.texcoords[q[4]],
+            uv,
+        )
+    elseif (length(shape.lines) != 0)
+        l = shape.lines[element]
+        interpolate_line(shape.texcoords[l[1]], shape.texcoords[l[2]], uv[1])
+    elseif (length(shape.points) != 0)
+        shape.texcoords[shape.points[element]]
+    else
+        vec2f{0,0}
+    end
 end
 
 end
