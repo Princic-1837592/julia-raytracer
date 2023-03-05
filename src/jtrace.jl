@@ -22,6 +22,7 @@ using .Cli: Params, parse_cli_args
 using .Scene: add_sky, find_camera
 using .SceneIO: load_scene, add_environment, save_image
 using .Trace: make_trace_lights, make_trace_state, trace_samples, get_image
+using Printf: @printf
 
 function main(params::Params)
     if params.highqualitybvh
@@ -53,10 +54,18 @@ function main(params::Params)
     println("making state...")
     state = make_trace_state(scene, params)
     println("tracing samples...")
+    render_ns = time_ns()
     for _sample in 1:(params.samples)
+        sample_ns = time_ns()
         trace_samples(state, scene, bvh, lights, params)
-        println("rander sample ", state.samples, "/", params.samples)
+        @printf(
+            "sample %d/%d in %.3f s\n",
+            state.samples,
+            params.samples,
+            (time_ns() - sample_ns) / 1e9
+        )
     end
+    @printf("rendered in %.3f s\n", (time_ns() - render_ns) / 1e9)
     println("saving image...")
     image = get_image(state)
     save_image(params.output, image)
