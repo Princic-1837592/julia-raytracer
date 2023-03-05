@@ -22,8 +22,10 @@ using ..Math:
     cross,
     dot,
     transform_normal,
-    orthonormalize
-using ..Color: byte_to_float
+    orthonormalize,
+    inverse,
+    pif
+using ..Color: byte_to_float, srgb_to_rgb
 using ..Shape: ShapeData
 using ..Geometry:
     Ray3f,
@@ -38,6 +40,7 @@ using ImageMagick: load, load_
 using Printf: @printf
 
 const invalid_id = -1
+const min_roughness = 0.03f0 * 0.03f0
 
 struct CameraData
     frame        :: Frame3f
@@ -105,8 +108,6 @@ function load_texture(path::String, texture::TextureData)::Bool
     extension = lowercase(splitext(path)[2])
     if extension == ".hdr"
         #todo fix wrong values
-        #         bytes = Vector{UInt8}(undef, filesize(path))
-        #         read!(path, bytes)
         img = load(path)
         texture.height, texture.width = size(img)
         texture.linear = true
@@ -218,7 +219,7 @@ struct MaterialData
     end
 end
 
-struct MaterialPoint
+mutable struct MaterialPoint
     type         :: MaterialType
     emission     :: Vec3f
     color        :: Vec3f
@@ -420,28 +421,42 @@ function eval_shading_normal(
     uv::Vec2f,
     outgoing::Vec3f,
 )::Vec3f
+    #     @printf(
+    #         "element: %d uv: %.5f %.5f outgoing: %.5f %.5f %.5f\n",
+    #         element,
+    #         uv[1],
+    #         uv[2],
+    #         outgoing[1],
+    #         outgoing[2],
+    #         outgoing[3]
+    #     )
     shape = scene.shapes[instance.shape]
     material = scene.materials[instance.material]
     if length(shape.triangles) != 0 || length(shape.quads) != 0
         normal = eval_normal(scene, instance, element, uv)
+        #         @printf("normal: %.5f %.5f %.5f\n", normal[1], normal[2], normal[3])
         if material.normal_tex != invalid_id
+            #             println("eval_normalmap")
             normal = eval_normalmap(scene, instance, element, uv)
         end
         if material.type == refractive
+            #             println("refractive")
             return normal
         end
-        return if dot(normal, outgoing) >= 0
+        normal = if dot(normal, outgoing) >= 0
             normal
         else
             -normal
         end
+        #         @printf("normal after dot: %.5f %.5f %.5f\n", normal[1], normal[2], normal[3])
+        normal
     elseif length(shape.lines) != 0
         normal = eval_normal(scene, instance, element, uv)
-        return orthonormalize(outgoing, normal)
+        orthonormalize(outgoing, normal)
     elseif length(shape.points) != 0
-        return outgoing
+        outgoing
     else
-        return Vec3f(0, 0, 0)
+        Vec3f(0, 0, 0)
     end
 end
 
@@ -452,7 +467,7 @@ function eval_normal(
     uv::Vec2f,
 )::Vec3f
     shape = scene.shapes[instance.shape]
-    if length(shape.normals) != 0
+    if length(shape.normals) == 0
         return eval_element_normal(scene, instance, element)
     end
     if length(shape.triangles) != 0
@@ -539,9 +554,100 @@ function eval_element_normal(
 end
 
 #yocto_scene.cpp 521
-function eval_material(scene::SceneData, instance::InstanceData, element::Int32, uv::Vec2f)
-    #todo
-    MaterialPoint(Vec3f(1, 1, 1), Vec3f(1, 1, 1))
+function eval_material(
+    scene::SceneData,
+    instance::InstanceData,
+    element::Int32,
+    uv::Vec2f,
+)::MaterialPoint
+    material = scene.materials[instance.material]
+    texcoord = eval_texcoord(scene, instance, element, uv)
+
+    emission_tex = eval_texture(scene, material.emission_tex, texcoord, true)
+    color_shp = eval_color(scene, instance, element, uv)
+    color_tex = eval_texture(scene, material.color_tex, texcoord, true)
+    roughness_tex = eval_texture(scene, material.roughness_tex, texcoord, false)
+    scattering_tex = eval_texture(scene, material.scattering_tex, texcoord, true)
+
+    point = MaterialPoint()
+    point.type = material.type
+    point.emission = material.emission .* Vec3f(emission_tex)
+    point.color = material.color .* Vec3f(color_tex) .* Vec3f(color_shp)
+    point.opacity = material.opacity * color_tex.w * color_shp.w
+    point.metallic = material.metallic * roughness_tex.z
+    point.roughness = material.roughness * roughness_tex.y
+    point.roughness = point.roughness * point.roughness
+    point.ior = material.ior
+    point.scattering = material.scattering .* Vec3f(scattering_tex)
+    point.scanisotropy = material.scanisotropy
+    point.trdepth = material.trdepth
+
+    if (
+        material.type == refractive ||
+        material.type == volumetric ||
+        material.type == subsurface
+    )
+        point.density = -log.(clamp.(point.color, 0.0001f0, 1.0f0)) / point.trdepth
+    else
+        point.density = Vec3f(0, 0, 0)
+    end
+
+    if (point.type == matte || point.type == gltfpbr || point.type == glossy)
+        point.roughness = clamp(point.roughness, min_roughness, 1.0f0)
+    elseif (material.type == volumetric)
+        point.roughness = 0
+    elseif (point.roughness < min_roughness)
+        point.roughness = 0
+    end
+
+    return point
+end
+
+function eval_texture(
+    scene::SceneData,
+    texture::Int32,
+    uv::Vec2f,
+    ldr_as_linear::Bool = false,
+    no_interpolation::Bool = false,
+    clamp_to_edge::Bool = false,
+)::Vec4f
+    if (texture == invalid_id)
+        Vec4f(1, 1, 1, 1)
+    else
+        eval_texture(scene.textures[texture], uv, ldr_as_linear, no_interpolation)
+    end
+end
+
+function eval_color(
+    scene::SceneData,
+    instance::InstanceData,
+    element::Int32,
+    uv::Vec2f,
+)::Vec4f
+    shape = scene.shapes[instance.shape]
+    if (length(shape.colors) == 0)
+        return Vec4f(1, 1, 1, 1)
+    end
+    if (length(shape.triangles) != 0)
+        t = shape.triangles[element]
+        interpolate_triangle(shape.colors[t[1]], shape.colors[t[2]], shape.colors[t[3]], uv)
+    elseif (length(shape.quads) != 0)
+        q = shape.quads[element]
+        interpolate_quad(
+            shape.colors[q[1]],
+            shape.colors[q[2]],
+            shape.colors[q[3]],
+            shape.colors[q[4]],
+            uv,
+        )
+    elseif (length(shape.lines) != 0)
+        l = shape.lines[element]
+        interpolate_line(shape.colors[l[1]], shape.colors[l[2]], uv[1])
+    elseif (length(shape.points) != 0)
+        shape.colors[shape.points[element]]
+    else
+        Vec4f(0, 0, 0, 0)
+    end
 end
 
 function eval_normalmap(
@@ -663,9 +769,9 @@ end
 function lookup_texture(texture::TextureData, i::Int32, j::Int32, as_linear::Bool)::Vec4f
     color = Vec4f(0, 0, 0, 0)
     if (length(texture.pixelsf) != 0)
-        color = texture.pixelsf[j * texture.width + i]
+        color = texture.pixelsf[j * texture.width + i + 1]
     else
-        color = byte_to_float(texture.pixelsb[j * texture.width + i])
+        color = byte_to_float(texture.pixelsb[j * texture.width + i + 1])
     end
     if (as_linear && !texture.linear)
         srgb_to_rgb(color)
@@ -714,6 +820,29 @@ function eval_element_tangents(
     else
         return (Vec3f(), Vec3f())
     end
+end
+
+function eval_environment(scene::SceneData, direction::Vec3f)::Vec3f
+    emission = Vec3f(0, 0, 0)
+    for environment in scene.environments
+        emission = emission .+ eval_environment(scene, environment, direction)
+    end
+    emission
+end
+
+function eval_environment(
+    scene::SceneData,
+    environment::EnvironmentData,
+    direction::Vec3f,
+)::Vec3f
+    wl = transform_direction(inverse(environment.frame), direction)
+    texcoord =
+        Vec2f(atan(wl[3], wl[1]) / (2.0f0 * pif), acos(clamp(wl[2], -1.0f0, 1.0f0)) / pif)
+    if (texcoord[1] < 0.0f0)
+        texcoord1 = texcoord[1] + 1.0f0
+        texcoord = Vec2f(texcoord1, texcoord[2])
+    end
+    environment.emission .* Vec3f(eval_texture(scene, environment.emission_tex, texcoord))
 end
 
 end

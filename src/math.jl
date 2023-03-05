@@ -85,7 +85,7 @@ lerp(a::Vec3f, b::Vec3f, u::Float32) = a * (1 - u) + b * u
 
 lerp(a::Vec3f, b::Vec3f, u::Vec3f) = a * (1 - u) + b * u
 
-function inverse(frame::Frame3f, non_rigid::Bool)::Frame3f
+function inverse(frame::Frame3f, non_rigid::Bool = false)::Frame3f
     if non_rigid
         minv = inverse(rotation(frame))
         make_frame(minv, -(minv * frame[4]))
@@ -97,7 +97,7 @@ end
 
 Base.:*(m::Mat3f, f::Vec3f)::Vec3f = m[1] * f[1] + m[2] * f[2] + m[3] * f[3]
 
-inverse(m::Mat3f)::Mat3f = adjoint(m) * (1 / determinant(m))
+inverse(m::Mat3f)::Mat3f = adjoint(m) * (1.0f0 / determinant(m))
 
 adjoint(m::Mat3f)::Mat3f =
     transpose(Mat3f(cross(m[2], m[3]), cross(m[3], m[1]), cross(m[1], m[2])))
@@ -122,5 +122,9 @@ transform_normal(a::Frame3f, b::Vec3f, non_rigid::Bool = false) =
     end
 
 orthonormalize(a::Vec3f, b::Vec3f)::Vec3f = normalize(a - b * dot(a, b))
+
+# clamp(x::Float32, min::Float32, max::Float32)::Float32 = min(max(x, min), max)
+
+# clamp(x::Int32, min::Int32, max::Int32)::Int32 = min(max(x, min), max)
 
 end

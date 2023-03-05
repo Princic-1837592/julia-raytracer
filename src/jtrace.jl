@@ -72,37 +72,60 @@ function main(params::Params)
     println("saved image to ", params.output)
 end
 
-main() = main(parse_cli_args(ARGS))
+main() = main(
+    Params(
+        "tests/features1/bunny.json";
+        output = "tests/features1/bunny.png",
+        samples = 1,
+        resolution = 50,
+        sampler = "naive",
+        #             envhidden = true,
+        noparallel = true,
+    ),
+)
 
 using JuliaFormatter: format
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    main()
+    main(parse_cli_args(ARGS))
 else
     format(pwd(); overwrite = true)
-    #         scene = "tests/features1/features1"
-    scene = "tests/features1/shapes_only"
-    #     scene = "tests/features1/bunny"
+    println("first run is fake, ignore this")
+    main(
+        Params(
+            "tests/features1/sphere.json";
+            output = "tests/features1/sphere.png",
+            samples = 1,
+            resolution = 10,
+            sampler = "naive",
+            bounces = 0,
+            envhidden = true,
+        ),
+    )
+    #     scene = "tests/features1/features1"
+    #     scene = "tests/features1/no_environ_floor"
+    scene = "tests/features1/bunny"
     #     scene = "tests/features2/features2"
-    #     scene = "tests/features2/shapes_only"
+    #     scene = "tests/features2/no_environ_floor"
     #     scene = "tests/materials1/materials1"
-    #     scene = "tests/materials1/shapes_only"
+    #     scene = "tests/materials1/no_environ_floor"
     #     scene = "tests/materials2/materials2"
-    #     scene = "tests/materials2/shapes_only"
+    #     scene = "tests/materials2/no_environ_floor"
     #     scene = "tests/materials4/materials4"
-    #     scene = "tests/materials4/shapes_only"
+    #     scene = "tests/materials4/no_environ_floor"
     #     scene = "tests/shapes1/shapes1"
-    #     scene = "tests/shapes1/shapes_only"
+    #     scene = "tests/shapes1/no_environ_floor"
     #     scene = "tests/shapes2/shapes2"
-    #     scene = "tests/shapes2/shapes_only"
+    #     scene = "tests/shapes2/no_environ_floor"
     main(
         Params(
             "$(scene).json";
             output = "$(scene).png",
             samples = 1,
-            resolution = 100,
+            resolution = 50,
             sampler = "naive",
-            envhidden = true,
+            #             envhidden = true,
+            noparallel = true,
         ),
     )
 end

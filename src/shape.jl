@@ -403,6 +403,11 @@ function get_faces(
     triangles::Vector{Vec3i},
     quads::Vector{Vec4i},
 )::Bool
+    try
+        ply[element]
+    catch e
+        return false
+    end
     if has_quads(ply, element, property)
         return get_vec4i_array(ply[element][property], quads)
     end

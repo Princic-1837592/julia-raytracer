@@ -150,7 +150,7 @@ function intersect_line(
         return PrimIntersection()
     end
 
-    s = clamp(s, 0.0, 1.0)
+    s = clamp(s, 0.0f0, 1.0f0)
 
     pr = ray.o + ray.d * t
     pl = p1 + (p2 - p1) * s
@@ -188,7 +188,7 @@ function intersect_sphere(ray::Ray3f, p::Vec3f, r::Float32)::PrimIntersection
     end
 
     plocal = ((ray.o + ray.d * t) - p) / r
-    u = atan2(plocal[2], plocal[1]) / (2 * pif)
+    u = atan(plocal[2], plocal[1]) / (2 * pif)
     if (u < 0)
         u += 1
     end

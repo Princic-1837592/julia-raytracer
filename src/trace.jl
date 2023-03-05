@@ -14,12 +14,13 @@ using ..Scene:
     eval_shading_position,
     eval_shading_normal,
     eval_material,
+    eval_environment,
     MaterialPoint
 using ..Math: Vec2f, Vec3f, Vec4f, lerp, Vec2i, dot
 using ..Bvh: SceneBvh, intersect_scene_bvh
 using ..Image: make_image, ImageData
 using ..Geometry: Ray3f
-using ..Sampling: sample_disk
+using ..Sampling: sample_disk, rand1f, rand2f
 using Printf: @printf
 
 mutable struct TraceState
@@ -97,28 +98,16 @@ function trace_naive(
     hit_albedo = Vec3f(0, 0, 0)
     hit_normal = Vec3f(0, 0, 0)
     opbounce = 0
-    #     return (
-    #         Vec3f(1, 1, 1),
-    #         #todo find_any=false
-    #         intersect_scene_bvh(bvh, scene, ray, true).hit,
-    #         Vec3f(0, 0, 0),
-    #         Vec3f(0, 0, 0),
-    #     )
 
-    # initialize
-
-    # trace  path
     for bounce in 0:(params.bounces - 1)
-        # intersect next point
         intersection = intersect_scene_bvh(bvh, scene, ray, false)
         if !intersection.hit
             if bounce > 0 || !params.envhidden
-                #                 radiance += weight * eval_environment(scene, ray.d)
+                radiance += weight .* eval_environment(scene, ray.d)
             end
             break
         end
 
-        # prepare shading point
         outgoing = -ray.d
         position = eval_shading_position(
             scene,
@@ -140,10 +129,8 @@ function trace_naive(
             intersection.element,
             intersection.uv,
         )
-        println(position, " ", normal, " ", material.color, " ", material.opacity)
 
-        #handle opacity
-        if (material.opacity < 1 && rand1f(rng) >= material.opacity)
+        if (material.opacity < 1 && rand1f() >= material.opacity)
             if opbounce > 128
                 break
             end
@@ -153,21 +140,17 @@ function trace_naive(
             continue
         end
 
-        # set hit variables
         if bounce == 0
             hit = true
             hit_albedo = material.color
             hit_normal = normal
         end
 
-        # accumulate emission
         radiance += weight .* eval_emission(material, normal, outgoing)
 
-        # next direction
         incoming = Vec3f(0, 0, 0)
         #         if (material.roughness != 0)
-        #             #todo random
-        #             incoming = sample_bsdfcos(material, normal, outgoing, 0.0f0, Vec2f(0, 0))
+        #             incoming = sample_bsdfcos(material, normal, outgoing, rand1f(), rand2f())
         #             if (incoming == Vec3f(0, 0, 0))
         #                 break
         #             end
@@ -175,8 +158,7 @@ function trace_naive(
         #                 eval_bsdfcos(material, normal, outgoing, incoming) /
         #                 sample_bsdfcos_pdf(material, normal, outgoing, incoming)
         #         else
-        #             #todo random
-        #             incoming = sample_delta(material, normal, outgoing, 0.0f0)
+        #             incoming = sample_delta(material, normal, outgoing, rand1f())
         #             if (incoming == Vec3f(0, 0, 0))
         #                 break
         #             end
@@ -185,25 +167,20 @@ function trace_naive(
         #                 sample_delta_pdf(material, normal, outgoing, incoming)
         #         end
 
-        # check weight
         if (weight == Vec3f(0, 0, 0) || !all(isfinite.(weight)))
             break
         end
 
-        # russian roulette
         if (bounce > 3)
             rr_prob = min(0.99f0, max(weight))
-            #todo random
-            if (0.0f0 >= rr_prob)
+            if (rand1f() >= rr_prob)
                 break
             end
             weight *= 1 / rr_prob
         end
 
-        # setup next iteration
         ray = Ray3f(position, incoming)
     end
-
     return (radiance, hit, hit_albedo, hit_normal)
 end
 
@@ -228,16 +205,14 @@ function trace_sample(
 )
     camera = scene.cameras[params.camera]
     idx = state.width * j + i + 1
-    #todo random
     ray = sample_camera(
         camera,
         Vec2i(i, j),
         Vec2i(state.width, state.height),
-        Vec2f(0, 0),
-        Vec2f(0, 0),
+        rand2f(),
+        rand2f(),
         params.tentfilter,
     )
-    #todo
     radiance, hit, albedo, normal =
         SAMPLERS[params.sampler](scene, bvh, lights, ray, params)
     if !all(isfinite.(radiance))

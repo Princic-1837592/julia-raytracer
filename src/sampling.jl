@@ -15,4 +15,10 @@ function sample_disk(ruv::Vec2f)::Vec2f
     Vec2f(cos(phi) * r, sin(phi) * r)
 end
 
+rand1f() = rand(Float32)
+
+rand2f() = Vec2f(rand1f(), rand1f())
+
+rand3f() = Vec3f(rand1f(), rand1f(), rand1f())
+
 end
