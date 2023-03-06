@@ -77,6 +77,8 @@ transform_point(frame::Frame3f, point::Vec3f)::Vec3f =
 
 transform_vector(a::Frame3f, b::Vec3f)::Vec3f = a[1] * b[1] + a[2] * b[2] + a[3] * b[3]
 
+transform_vector(a::Mat3f, b::Vec3f)::Vec3f = a * b
+
 transform_direction(a::Frame3f, b::Vec3f)::Vec3f = normalize(transform_vector(a, b))
 
 lerp(a::Vec4f, b::Vec4f, u::Float32) = a * (1 - u) + b * u
@@ -126,5 +128,7 @@ orthonormalize(a::Vec3f, b::Vec3f)::Vec3f = normalize(a - b * dot(a, b))
 # clamp(x::Float32, min::Float32, max::Float32)::Float32 = min(max(x, min), max)
 
 # clamp(x::Int32, min::Int32, max::Int32)::Int32 = min(max(x, min), max)
+
+transform_direction(a::Mat3f, b::Vec3f) = normalize(transform_vector(a, b))
 
 end

@@ -17,6 +17,7 @@ include("shape.jl")
 include("scene.jl")
 include("bvh.jl")
 include("sceneio.jl")
+include("shading.jl")
 include("trace.jl")
 using .Bvh: make_scene_bvh, verify_bvh
 using .Cli: Params, parse_cli_args
@@ -119,17 +120,15 @@ else
     #     scene = "tests/shapes1/no_environ_floor"
     #     scene = "tests/shapes2/shapes2"
     #     scene = "tests/shapes2/no_environ_floor"
-    main(
-        Params(
-            "$(scene).json";
-            output = "$(scene).png",
-            samples = 1,
-            resolution = 20,
-            sampler = "naive",
-            #             envhidden = true,
-            noparallel = true,
-        ),
-    )
+    main(Params(
+        "$(scene).json";
+        output = "$(scene).png",
+        samples = 1,
+        #             resolution = 20,
+        sampler = "naive",
+        #             envhidden = true,
+        #             noparallel = true,
+    ))
 end
 
 end

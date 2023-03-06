@@ -15,7 +15,16 @@ using ..Scene:
     eval_shading_normal,
     eval_material,
     eval_environment,
-    MaterialPoint
+    MaterialPoint,
+    matte,
+    glossy,
+    reflective,
+    transparent,
+    refractive,
+    subsurface,
+    volumetric,
+    gltfpbr
+using ..Shading: sample_matte, eval_matte, sample_matte_pdf
 using ..Math: Vec2f, Vec3f, Vec4f, lerp, Vec2i, dot
 using ..Bvh: SceneBvh, intersect_scene_bvh
 using ..Image: make_image, ImageData
@@ -150,23 +159,23 @@ function trace_naive(
         radiance += weight .* eval_emission(material, normal, outgoing)
 
         incoming = Vec3f(0, 0, 0)
-        #         if (material.roughness != 0)
-        #             incoming = sample_bsdfcos(material, normal, outgoing, rand1f(), rand2f())
-        #             if (incoming == Vec3f(0, 0, 0))
-        #                 break
-        #             end
-        #             weight *=
-        #                 eval_bsdfcos(material, normal, outgoing, incoming) /
-        #                 sample_bsdfcos_pdf(material, normal, outgoing, incoming)
-        #         else
-        #             incoming = sample_delta(material, normal, outgoing, rand1f())
-        #             if (incoming == Vec3f(0, 0, 0))
-        #                 break
-        #             end
-        #             weight *=
-        #                 eval_delta(material, normal, outgoing, incoming) /
-        #                 sample_delta_pdf(material, normal, outgoing, incoming)
-        #         end
+        if (material.roughness != 0)
+            incoming = sample_bsdfcos(material, normal, outgoing, rand1f(), rand2f())
+            if (incoming == Vec3f(0, 0, 0))
+                break
+            end
+            weight =
+                weight .* eval_bsdfcos(material, normal, outgoing, incoming) /
+                sample_bsdfcos_pdf(material, normal, outgoing, incoming)
+        else
+            incoming = sample_delta(material, normal, outgoing, rand1f())
+            if (incoming == Vec3f(0, 0, 0))
+                break
+            end
+            weight =
+                weight .* eval_delta(material, normal, outgoing, incoming) /
+                sample_delta_pdf(material, normal, outgoing, incoming)
+        end
 
         if (weight == Vec3f(0, 0, 0) || !all(isfinite.(weight)))
             break
@@ -182,12 +191,12 @@ function trace_naive(
 
         ray = Ray3f(position, incoming)
     end
-    @printf("ray_: %f %f %f\n", ray_.d[1], ray_.d[2], ray_.d[3])
-    @printf("radiance: %f %f %f\n", radiance[1], radiance[2], radiance[3])
-    @printf("albedo: %f %f %f\n", hit_albedo[1], hit_albedo[2], hit_albedo[3])
-    @printf("normal: %f %f %f\n", hit_normal[1], hit_normal[2], hit_normal[3])
-    @printf("hit: %d\n", hit)
-    @printf("weight: %f %f %f\n", weight[1], weight[2], weight[3])
+    #     @printf("ray_: %f %f %f\n", ray_.d[1], ray_.d[2], ray_.d[3])
+    #     @printf("radiance: %f %f %f\n", radiance[1], radiance[2], radiance[3])
+    #     @printf("albedo: %f %f %f\n", hit_albedo[1], hit_albedo[2], hit_albedo[3])
+    #     @printf("normal: %f %f %f\n", hit_normal[1], hit_normal[2], hit_normal[3])
+    #     @printf("hit: %d\n", hit)
+    #     @printf("weight: %f %f %f\n", weight[1], weight[2], weight[3])
 
     return (radiance, hit, hit_albedo, hit_normal)
 end
@@ -226,7 +235,10 @@ function trace_sample(
     if !all(isfinite.(radiance))
         radiance = Vec3f(0, 0, 0)
     end
-    #todo? if clamp
+    #todo
+    if (maximum(radiance) > 10)
+        radiance = radiance .* (10 / maximum(radiance))
+    end
     weight::Float32 = 1 / (sample + 1)
     if hit
         state.image[idx] =
@@ -245,25 +257,25 @@ function trace_sample(
         state.albedo[idx] = lerp(state.albedo[idx], Vec3f(0, 0, 0), weight)
         state.normal[idx] = lerp(state.normal[idx], -ray.d, weight)
     end
-    @printf(
-        "image: %f %f %f %f\n",
-        state.image[idx][1],
-        state.image[idx][2],
-        state.image[idx][3],
-        state.image[idx][4],
-    )
-    @printf(
-        "albedo: %f %f %f\n",
-        state.albedo[idx][1],
-        state.albedo[idx][2],
-        state.albedo[idx][3]
-    )
-    @printf(
-        "normal: %f %f %f\n",
-        state.normal[idx][1],
-        state.normal[idx][2],
-        state.normal[idx][3]
-    )
+    #     @printf(
+    #         "image: %f %f %f %f\n",
+    #         state.image[idx][1],
+    #         state.image[idx][2],
+    #         state.image[idx][3],
+    #         state.image[idx][4],
+    #     )
+    #     @printf(
+    #         "albedo: %f %f %f\n",
+    #         state.albedo[idx][1],
+    #         state.albedo[idx][2],
+    #         state.albedo[idx][3]
+    #     )
+    #     @printf(
+    #         "normal: %f %f %f\n",
+    #         state.normal[idx][1],
+    #         state.normal[idx][2],
+    #         state.normal[idx][3]
+    #     )
 end
 
 function sample_camera(
@@ -299,154 +311,280 @@ function get_image(image::ImageData, state::TraceState)
     end
 end
 
-#=
+function eval_bsdfcos(
+    material::MaterialPoint,
+    normal::Vec3f,
+    outgoing::Vec3f,
+    incoming::Vec3f,
+)::Vec3f
+    if material.roughness == 0
+        return Vec3f(0, 0, 0)
+    end
 
-// Evaluates/sample the BRDF scaled by the cosine of the incoming direction.
-static vec3f eval_bsdfcos(const material_point& material, const vec3f& normal,
-    const vec3f& outgoing, const vec3f& incoming) {
-  if (material.roughness == 0) return {0, 0, 0};
+    if material.type == matte
+        eval_matte(material.color, normal, outgoing, incoming)
+    elseif material.type == glossy
+        eval_glossy(
+            material.color,
+            material.ior,
+            material.roughness,
+            normal,
+            outgoing,
+            incoming,
+        )
+    elseif material.type == reflective
+        eval_reflective(material.color, material.roughness, normal, outgoing, incoming)
+    elseif material.type == transparent
+        eval_transparent(
+            material.color,
+            material.ior,
+            material.roughness,
+            normal,
+            outgoing,
+            incoming,
+        )
+    elseif material.type == refractive
+        eval_refractive(
+            material.color,
+            material.ior,
+            material.roughness,
+            normal,
+            outgoing,
+            incoming,
+        )
+    elseif material.type == subsurface
+        eval_refractive(
+            material.color,
+            material.ior,
+            material.roughness,
+            normal,
+            outgoing,
+            incoming,
+        )
+    elseif material.type == gltfpbr
+        eval_gltfpbr(
+            material.color,
+            material.ior,
+            material.roughness,
+            material.metallic,
+            normal,
+            outgoing,
+            incoming,
+        )
+    else
+        Vec3f(0, 0, 0)
+    end
+end
 
-  if (material.type == material_type::matte) {
-    return eval_matte(material.color, normal, outgoing, incoming);
-  } else if (material.type == material_type::glossy) {
-    return eval_glossy(material.color, material.ior, material.roughness, normal,
-        outgoing, incoming);
-  } else if (material.type == material_type::reflective) {
-    return eval_reflective(
-        material.color, material.roughness, normal, outgoing, incoming);
-  } else if (material.type == material_type::transparent) {
-    return eval_transparent(material.color, material.ior, material.roughness,
-        normal, outgoing, incoming);
-  } else if (material.type == material_type::refractive) {
-    return eval_refractive(material.color, material.ior, material.roughness,
-        normal, outgoing, incoming);
-  } else if (material.type == material_type::subsurface) {
-    return eval_refractive(material.color, material.ior, material.roughness,
-        normal, outgoing, incoming);
-  } else if (material.type == material_type::gltfpbr) {
-    return eval_gltfpbr(material.color, material.ior, material.roughness,
-        material.metallic, normal, outgoing, incoming);
-  } else {
-    return {0, 0, 0};
-  }
-}
+function eval_delta(
+    material::MaterialPoint,
+    normal::Vec3f,
+    outgoing::Vec3f,
+    incoming::Vec3f,
+)::Vec3f
+    if (material.roughness != 0)
+        return Vec3f(0, 0, 0)
+    end
 
-static vec3f eval_delta(const material_point& material, const vec3f& normal,
-    const vec3f& outgoing, const vec3f& incoming) {
-  if (material.roughness != 0) return {0, 0, 0};
+    if material.type == reflective
+        eval_reflective(material.color, normal, outgoing, incoming)
+    elseif material.type == transparent
+        eval_transparent(material.color, material.ior, normal, outgoing, incoming)
+    elseif material.type == refractive
+        eval_refractive(material.color, material.ior, normal, outgoing, incoming)
+    elseif material.type == volumetric
+        eval_passthrough(material.color, normal, outgoing, incoming)
+    else
+        Vec3f(0, 0, 0)
+    end
+end
 
-  if (material.type == material_type::reflective) {
-    return eval_reflective(material.color, normal, outgoing, incoming);
-  } else if (material.type == material_type::transparent) {
-    return eval_transparent(
-        material.color, material.ior, normal, outgoing, incoming);
-  } else if (material.type == material_type::refractive) {
-    return eval_refractive(
-        material.color, material.ior, normal, outgoing, incoming);
-  } else if (material.type == material_type::volumetric) {
-    return eval_passthrough(material.color, normal, outgoing, incoming);
-  } else {
-    return {0, 0, 0};
-  }
-}
+function sample_bsdfcos(
+    material::MaterialPoint,
+    normal::Vec3f,
+    outgoing::Vec3f,
+    rnl::Float32,
+    rn::Vec2f,
+)::Vec3f
+    if (material.roughness == 0)
+        return Vec3f(0, 0, 0)
+    end
 
-// Picks a direction based on the BRDF
-static vec3f sample_bsdfcos(const material_point& material, const vec3f& normal,
-    const vec3f& outgoing, float rnl, const vec2f& rn) {
-  if (material.roughness == 0) return {0, 0, 0};
+    if material.type == matte
+        sample_matte(material.color, normal, outgoing, rn)
+    elseif material.type == glossy
+        sample_glossy(
+            material.color,
+            material.ior,
+            material.roughness,
+            normal,
+            outgoing,
+            rnl,
+            rn,
+        )
+    elseif material.type == reflective
+        sample_reflective(material.color, material.roughness, normal, outgoing, rn)
+    elseif material.type == transparent
+        sample_transparent(
+            material.color,
+            material.ior,
+            material.roughness,
+            normal,
+            outgoing,
+            rnl,
+            rn,
+        )
+    elseif material.type == refractive
+        sample_refractive(
+            material.color,
+            material.ior,
+            material.roughness,
+            normal,
+            outgoing,
+            rnl,
+            rn,
+        )
+    elseif material.type == subsurface
+        sample_refractive(
+            material.color,
+            material.ior,
+            material.roughness,
+            normal,
+            outgoing,
+            rnl,
+            rn,
+        )
+    elseif material.type == gltfpbr
+        sample_gltfpbr(
+            material.color,
+            material.ior,
+            material.roughness,
+            material.metallic,
+            normal,
+            outgoing,
+            rnl,
+            rn,
+        )
+    else
+        Vec3f(0, 0, 0)
+    end
+end
 
-  if (material.type == material_type::matte) {
-    return sample_matte(material.color, normal, outgoing, rn);
-  } else if (material.type == material_type::glossy) {
-    return sample_glossy(material.color, material.ior, material.roughness,
-        normal, outgoing, rnl, rn);
-  } else if (material.type == material_type::reflective) {
-    return sample_reflective(
-        material.color, material.roughness, normal, outgoing, rn);
-  } else if (material.type == material_type::transparent) {
-    return sample_transparent(material.color, material.ior, material.roughness,
-        normal, outgoing, rnl, rn);
-  } else if (material.type == material_type::refractive) {
-    return sample_refractive(material.color, material.ior, material.roughness,
-        normal, outgoing, rnl, rn);
-  } else if (material.type == material_type::subsurface) {
-    return sample_refractive(material.color, material.ior, material.roughness,
-        normal, outgoing, rnl, rn);
-  } else if (material.type == material_type::gltfpbr) {
-    return sample_gltfpbr(material.color, material.ior, material.roughness,
-        material.metallic, normal, outgoing, rnl, rn);
-  } else {
-    return {0, 0, 0};
-  }
-}
+function sample_delta(
+    material::MaterialPoint,
+    normal::Vec3f,
+    outgoing::Vec3f,
+    rnl::Float32,
+)::Vec3f
+    if material.roughness != 0
+        return Vec3f(0, 0, 0)
+    end
 
-static vec3f sample_delta(const material_point& material, const vec3f& normal,
-    const vec3f& outgoing, float rnl) {
-  if (material.roughness != 0) return {0, 0, 0};
+    if material.type == reflective
+        sample_reflective(material.color, normal, outgoing)
+    elseif material.type == transparent
+        sample_transparent(material.color, material.ior, normal, outgoing, rnl)
+    elseif material.type == refractive
+        sample_refractive(material.color, material.ior, normal, outgoing, rnl)
+    elseif material.type == volumetric
+        sample_passthrough(material.color, normal, outgoing)
+    else
+        Vec3f(0, 0, 0)
+    end
+end
 
-  if (material.type == material_type::reflective) {
-    return sample_reflective(material.color, normal, outgoing);
-  } else if (material.type == material_type::transparent) {
-    return sample_transparent(
-        material.color, material.ior, normal, outgoing, rnl);
-  } else if (material.type == material_type::refractive) {
-    return sample_refractive(
-        material.color, material.ior, normal, outgoing, rnl);
-  } else if (material.type == material_type::volumetric) {
-    return sample_passthrough(material.color, normal, outgoing);
-  } else {
-    return {0, 0, 0};
-  }
-}
+function sample_bsdfcos_pdf(
+    material::MaterialPoint,
+    normal::Vec3f,
+    outgoing::Vec3f,
+    incoming::Vec3f,
+)::Float32
+    if material.roughness == 0
+        return 0
+    end
 
-// Compute the weight for sampling the BRDF
-static float sample_bsdfcos_pdf(const material_point& material,
-    const vec3f& normal, const vec3f& outgoing, const vec3f& incoming) {
-  if (material.roughness == 0) return 0;
+    if material.type == matte
+        sample_matte_pdf(material.color, normal, outgoing, incoming)
+    elseif material.type == glossy
+        sample_glossy_pdf(
+            material.color,
+            material.ior,
+            material.roughness,
+            normal,
+            outgoing,
+            incoming,
+        )
+    elseif material.type == reflective
+        sample_reflective_pdf(
+            material.color,
+            material.roughness,
+            normal,
+            outgoing,
+            incoming,
+        )
+    elseif material.type == transparent
+        sample_tranparent_pdf(
+            material.color,
+            material.ior,
+            material.roughness,
+            normal,
+            outgoing,
+            incoming,
+        )
+    elseif material.type == refractive
+        sample_refractive_pdf(
+            material.color,
+            material.ior,
+            material.roughness,
+            normal,
+            outgoing,
+            incoming,
+        )
+    elseif material.type == subsurface
+        sample_refractive_pdf(
+            material.color,
+            material.ior,
+            material.roughness,
+            normal,
+            outgoing,
+            incoming,
+        )
+    elseif material.type == gltfpbr
+        sample_gltfpbr_pdf(
+            material.color,
+            material.ior,
+            material.roughness,
+            material.metallic,
+            normal,
+            outgoing,
+            incoming,
+        )
+    else
+        0
+    end
+end
 
-  if (material.type == material_type::matte) {
-    return sample_matte_pdf(material.color, normal, outgoing, incoming);
-  } else if (material.type == material_type::glossy) {
-    return sample_glossy_pdf(material.color, material.ior, material.roughness,
-        normal, outgoing, incoming);
-  } else if (material.type == material_type::reflective) {
-    return sample_reflective_pdf(
-        material.color, material.roughness, normal, outgoing, incoming);
-  } else if (material.type == material_type::transparent) {
-    return sample_tranparent_pdf(material.color, material.ior,
-        material.roughness, normal, outgoing, incoming);
-  } else if (material.type == material_type::refractive) {
-    return sample_refractive_pdf(material.color, material.ior,
-        material.roughness, normal, outgoing, incoming);
-  } else if (material.type == material_type::subsurface) {
-    return sample_refractive_pdf(material.color, material.ior,
-        material.roughness, normal, outgoing, incoming);
-  } else if (material.type == material_type::gltfpbr) {
-    return sample_gltfpbr_pdf(material.color, material.ior, material.roughness,
-        material.metallic, normal, outgoing, incoming);
-  } else {
-    return 0;
-  }
-}
+function sample_delta_pdf(
+    material::MaterialPoint,
+    normal::Vec3f,
+    outgoing::Vec3f,
+    incoming::Vec3f,
+)::Float32
+    if material.roughness != 0
+        return 0
+    end
 
-static float sample_delta_pdf(const material_point& material,
-    const vec3f& normal, const vec3f& outgoing, const vec3f& incoming) {
-  if (material.roughness != 0) return 0;
-
-  if (material.type == material_type::reflective) {
-    return sample_reflective_pdf(material.color, normal, outgoing, incoming);
-  } else if (material.type == material_type::transparent) {
-    return sample_tranparent_pdf(
-        material.color, material.ior, normal, outgoing, incoming);
-  } else if (material.type == material_type::refractive) {
-    return sample_refractive_pdf(
-        material.color, material.ior, normal, outgoing, incoming);
-  } else if (material.type == material_type::volumetric) {
-    return sample_passthrough_pdf(material.color, normal, outgoing, incoming);
-  } else {
-    return 0;
-  }
-}
-=#
+    if material.type == reflective
+        sample_reflective_pdf(material.color, normal, outgoing, incoming)
+    elseif material.type == transparent
+        sample_tranparent_pdf(material.color, material.ior, normal, outgoing, incoming)
+    elseif material.type == refractive
+        sample_refractive_pdf(material.color, material.ior, normal, outgoing, incoming)
+    elseif material.type == volumetric
+        sample_passthrough_pdf(material.color, normal, outgoing, incoming)
+    else
+        0
+    end
+end
 
 end
