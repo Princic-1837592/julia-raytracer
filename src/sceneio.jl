@@ -18,7 +18,7 @@ using ..Scene:
     load_texture
 using ..Shape: load_shape, ShapeData
 using ..Image: ImageData
-using Images: save, colorview, RGBA
+using Images: save, colorview, RGBA, clamp01nan
 
 #todo check all return values
 function load_scene(filename::String, no_parallel::Bool)::SceneData
@@ -109,7 +109,7 @@ function save_image(filename::String, image::ImageData)
             matrix[i, j] = RGBA(vec4f[1], vec4f[2], vec4f[3], vec4f[4])
         end
     end
-    save(filename, matrix)
+    save(filename, clamp01nan.(matrix))
 end
 
 end
