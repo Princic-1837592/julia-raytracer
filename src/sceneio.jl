@@ -24,7 +24,7 @@ using Images: save, colorview, RGBA
 function load_scene(filename::String, no_parallel::Bool)::SceneData
     dir = dirname(filename)
     scene = SceneData()
-    json = parsefile(filename::AbstractString; inttype = Int32)
+    json = parsefile(filename::AbstractString; inttype = Int)
     println("    loading cameras...")
     if haskey(json, "cameras")
         cameras = json["cameras"]

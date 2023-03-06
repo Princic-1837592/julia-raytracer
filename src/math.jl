@@ -12,11 +12,11 @@ using Images: RGBA, RGB
 
 const pif = Float32(pi)
 
-const Vec2i = SVector{2,Int32}
+const Vec2i = SVector{2,Int}
 Vec2i() = Vec2i(0, 0)
-const Vec3i = SVector{3,Int32}
+const Vec3i = SVector{3,Int}
 Vec3i() = Vec3i(0, 0, 0)
-const Vec4i = SVector{4,Int32}
+const Vec4i = SVector{4,Int}
 Vec4i() = Vec4i(0, 0, 0, 0)
 
 const Vec2f = SVector{2,Float32}
@@ -25,16 +25,16 @@ const Vec3f = SVector{3,Float32}
 Vec3f() = Vec3f(0, 0, 0)
 const Vec4f = SVector{4,Float32}
 Vec4f() = Vec4f(0, 0, 0, 0)
-Vec4f(r::RGB) = Vec4f(r.r, r.g, r.b, 1)
+Vec4f(rgba::RGB) = Vec4f(rgba.r, rgba.g, rgba.b, 1)
 Vec3f(vec4f::Vec4f) = Vec3f(vec4f[1], vec4f[2], vec4f[3])
 
 const Vec4b = SVector{4,UInt8}
 Vec4b() = Vec4b(0, 0, 0, 0)
-Vec4b(r::RGBA) = Vec4b(
-    UInt8(typemax(UInt8) * r.r),
-    UInt8(typemax(UInt8) * r.g),
-    UInt8(typemax(UInt8) * r.b),
-    UInt8(typemax(UInt8) * r.alpha),
+Vec4b(rgba::RGBA) = Vec4b(
+    UInt8(typemax(UInt8) * rgba.r),
+    UInt8(typemax(UInt8) * rgba.g),
+    UInt8(typemax(UInt8) * rgba.b),
+    UInt8(typemax(UInt8) * rgba.alpha),
 )
 
 const Frame3f = SVector{4,Vec3f}

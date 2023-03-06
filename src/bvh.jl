@@ -33,7 +33,7 @@ const BVH_MAX_PRIMS = 4
 
 mutable struct BvhNode
     bbox     :: Bbox3f
-    start    :: Int32
+    start    :: Int
     num      :: Int16
     axis     :: Int8
     internal :: Bool
@@ -43,9 +43,9 @@ end
 
 struct BvhTree
     nodes      :: Vector{BvhNode}
-    primitives :: Vector{Int32}
+    primitives :: Vector{Int}
 
-    BvhTree() = new(BvhNode[], Int32[])
+    BvhTree() = new(BvhNode[], Int[])
 end
 
 mutable struct ShapeBvh
@@ -182,12 +182,12 @@ function make_bvh(bboxes::Vector{Bbox3f}, high_quality::Bool)::BvhTree
 end
 
 function split_middle(
-    primitives::Vector{Int32},
+    primitives::Vector{Int},
     bboxes::Vector{Bbox3f},
     centers::Vector{Vec3f},
-    left::Int32,
-    right::Int32,
-)::Tuple{Int32,Int8}
+    left::Int,
+    right::Int,
+)::Tuple{Int,Int8}
     cbbox = Bbox3f()
     for i in left:right
         cbbox = merge_bbox3f(cbbox, centers[primitives[i]])
@@ -215,7 +215,7 @@ function split_middle(
     return (middle, axis)
 end
 
-function partition(f::Function, a::Vector{T}, start::Int32, stop::Int32)::Int32 where {T}
+function partition(f::Function, a::Vector{T}, start::Int, stop::Int)::Int where {T}
     i = start
     j = stop
     while true
@@ -243,7 +243,7 @@ function intersect_scene_bvh(
     if length(bvh.nodes) == 0
         return false
     end
-    stack = Vector{Int32}(undef, 128)
+    stack = Vector{Int}(undef, 128)
     fill!(stack, 0)
     node_cur = 1
     stack[node_cur] = 1
@@ -322,7 +322,7 @@ function intersect_shape_bvh(
     if length(bvh.nodes) == 0
         return ShapeIntersection()
     end
-    stack = Vector{Int32}(undef, 128)
+    stack = Vector{Int}(undef, 128)
     fill!(stack, 0)
     node_cur = 1
     stack[node_cur] = 1

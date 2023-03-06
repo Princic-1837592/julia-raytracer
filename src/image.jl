@@ -18,7 +18,7 @@ mutable struct ImageData
     ImageData(width, height, data, linear) = new(width, height, data, linear)
 end
 
-function make_image(width::Int32, height::Int32, linear::Bool)::ImageData
+function make_image(width::Int, height::Int, linear::Bool)::ImageData
     image = Vector{Vec4f}(undef, width * height)
     fill!(image, Vec4f(0, 0, 0, 0))
     ImageData(width, height, image, linear)

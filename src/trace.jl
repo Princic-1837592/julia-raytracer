@@ -24,13 +24,13 @@ using ..Sampling: sample_disk, rand1f, rand2f
 using Printf: @printf
 
 mutable struct TraceState
-    width   :: Int32
-    height  :: Int32
-    samples :: Int32
+    width   :: Int
+    height  :: Int
+    samples :: Int
     image   :: Vector{Vec4f}
     albedo  :: Vector{Vec3f}
     normal  :: Vector{Vec3f}
-    hits    :: Vector{Int32}
+    hits    :: Vector{Int}
     #  rngs       ::Array{rng_state}
     denoised::Vector{Vec4f}
 
@@ -44,10 +44,10 @@ function make_trace_state(scene::SceneData, params)::TraceState
     camera = scene.cameras[params.camera]
     if camera.aspect >= 1
         width = params.resolution
-        height = round(Int32, params.resolution / camera.aspect)
+        height = round(Int, params.resolution / camera.aspect)
     else
         height = params.resolution
-        width = round(Int32, params.resolution * camera.aspect)
+        width = round(Int, params.resolution * camera.aspect)
     end
     samples = 0
     image = Vector{Vec4f}(undef, width * height)
@@ -56,7 +56,7 @@ function make_trace_state(scene::SceneData, params)::TraceState
     fill!(albedo, Vec3f(0, 0, 0))
     normal = Vector{Vec3f}(undef, width * height)
     fill!(normal, Vec3f(0, 0, 0))
-    hits = Vector{Int32}(undef, width * height)
+    hits = Vector{Int}(undef, width * height)
     fill!(hits, 0)
     denoised = Vector{Vec4f}(undef, 0)
     if params.denoise
@@ -142,6 +142,7 @@ function trace_naive(
 
         if bounce == 0
             hit = true
+            #todo albedo is different
             hit_albedo = material.color
             hit_normal = normal
         end
@@ -172,7 +173,7 @@ function trace_naive(
         end
 
         if (bounce > 3)
-            rr_prob = min(0.99f0, max(weight))
+            rr_prob = min(0.99f0, maximum(weight))
             if (rand1f() >= rr_prob)
                 break
             end
@@ -181,6 +182,13 @@ function trace_naive(
 
         ray = Ray3f(position, incoming)
     end
+    @printf("ray_: %f %f %f\n", ray_.d[1], ray_.d[2], ray_.d[3])
+    @printf("radiance: %f %f %f\n", radiance[1], radiance[2], radiance[3])
+    @printf("albedo: %f %f %f\n", hit_albedo[1], hit_albedo[2], hit_albedo[3])
+    @printf("normal: %f %f %f\n", hit_normal[1], hit_normal[2], hit_normal[3])
+    @printf("hit: %d\n", hit)
+    @printf("weight: %f %f %f\n", weight[1], weight[2], weight[3])
+
     return (radiance, hit, hit_albedo, hit_normal)
 end
 
@@ -200,7 +208,7 @@ function trace_sample(
     lights,
     i,
     j,
-    sample::Int32,
+    sample::Int,
     params,
 )
     camera = scene.cameras[params.camera]
@@ -209,8 +217,8 @@ function trace_sample(
         camera,
         Vec2i(i, j),
         Vec2i(state.width, state.height),
-        rand2f(),
-        rand2f(),
+        Vec2f(0, 0),
+        Vec2f(0, 0),
         params.tentfilter,
     )
     radiance, hit, albedo, normal =
@@ -237,6 +245,25 @@ function trace_sample(
         state.albedo[idx] = lerp(state.albedo[idx], Vec3f(0, 0, 0), weight)
         state.normal[idx] = lerp(state.normal[idx], -ray.d, weight)
     end
+    @printf(
+        "image: %f %f %f %f\n",
+        state.image[idx][1],
+        state.image[idx][2],
+        state.image[idx][3],
+        state.image[idx][4],
+    )
+    @printf(
+        "albedo: %f %f %f\n",
+        state.albedo[idx][1],
+        state.albedo[idx][2],
+        state.albedo[idx][3]
+    )
+    @printf(
+        "normal: %f %f %f\n",
+        state.normal[idx][1],
+        state.normal[idx][2],
+        state.normal[idx][3]
+    )
 end
 
 function sample_camera(

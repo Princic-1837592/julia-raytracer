@@ -85,7 +85,7 @@ mutable struct Params
     highqualitybvh::Bool
     envhidden::Bool
     tentfilter::Bool
-    sampler::Int32
+    sampler::Int
 
     function Params(
         scene::String;

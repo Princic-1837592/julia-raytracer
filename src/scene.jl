@@ -68,8 +68,8 @@ end
 
 struct InstanceData
     frame    :: Frame3f
-    shape    :: Int32
-    material :: Int32
+    shape    :: Int
+    material :: Int
 
     function InstanceData(json)
         frame = Frame3f(Float32.(get(json, "frame", Vector())))
@@ -83,7 +83,7 @@ end
 struct EnvironmentData
     frame        :: Frame3f
     emission     :: Vec3f
-    emission_tex :: Int32
+    emission_tex :: Int
 
     function EnvironmentData(json)
         frame = Frame3f(Float32.(get(json, "frame", Vector{Float32}(undef, 0))))
@@ -95,8 +95,8 @@ struct EnvironmentData
 end
 
 mutable struct TextureData
-    width   :: Int32
-    height  :: Int32
+    width   :: Int
+    height  :: Int
     linear  :: Bool
     pixelsf :: Vector{Vec4f}
     pixelsb :: Vector{Vec4b}
@@ -115,19 +115,32 @@ function load_texture(path::String, texture::TextureData)::Bool
         for i in 1:length(img)
             texture.pixelsf[i] = Vec4f(img[i])
         end
-        #         @printf(
-        #             "%d %d\n%.5f %.5f %.5f %.5f\n%.5f %.5f %.5f %.5f\n",
-        #             texture.width,
-        #             texture.height,
-        #             texture.pixelsf[1][1],
-        #             texture.pixelsf[1][2],
-        #             texture.pixelsf[1][3],
-        #             texture.pixelsf[1][4],
-        #             last(texture.pixelsf)[1],
-        #             last(texture.pixelsf)[2],
-        #             last(texture.pixelsf)[3],
-        #             last(texture.pixelsf)[4],
-        #         )
+        #         for i in 1:500:length(texture.pixelsf)
+        #             @printf(
+        #                 "%d %.5f %.5f %.5f %.5f ",
+        #                 i,
+        #                 texture.pixelsf[i][1],
+        #                 texture.pixelsf[i][2],
+        #                 texture.pixelsf[i][3],
+        #                 texture.pixelsf[i][4]
+        #             )
+        #             @printf(
+        #                 "%d %.5f %.5f %.5f %.5f ",
+        #                 i + 1,
+        #                 texture.pixelsf[i + 1][1],
+        #                 texture.pixelsf[i + 1][2],
+        #                 texture.pixelsf[i + 1][3],
+        #                 texture.pixelsf[i + 1][4]
+        #             )
+        #             @printf(
+        #                 "%d %.5f %.5f %.5f %.5f\n",
+        #                 i + 2,
+        #                 texture.pixelsf[i + 2][1],
+        #                 texture.pixelsf[i + 2][2],
+        #                 texture.pixelsf[i + 2][3],
+        #                 texture.pixelsf[i + 2][4]
+        #             )
+        #         end
     elseif extension == ".png"
         img = load(path)
         texture.height, texture.width = size(img)
@@ -176,11 +189,11 @@ struct MaterialData
     scanisotropy   :: Float32
     trdepth        :: Float32
     opacity        :: Float32
-    emission_tex   :: Int32
-    color_tex      :: Int32
-    roughness_tex  :: Int32
-    scattering_tex :: Int32
-    normal_tex     :: Int32
+    emission_tex   :: Int
+    color_tex      :: Int
+    roughness_tex  :: Int
+    scattering_tex :: Int
+    normal_tex     :: Int
 
     function MaterialData(json)
         type = get(MaterialTypes, get(json, "type", "matte"), matte)
@@ -268,12 +281,12 @@ struct SubdivData
     positions        :: Vector{Vec3f}
     normals          :: Vector{Vec3f}
     texcoords        :: Vector{Vec3f}
-    subdivisions     :: Int32
+    subdivisions     :: Int
     catmullclark     :: Bool
     smooth           :: Bool
     displacement     :: Float32
-    displacement_tex :: Int32
-    shape            :: Int32
+    displacement_tex :: Int
+    shape            :: Int
 end
 
 struct SceneData
@@ -297,7 +310,7 @@ struct SceneData
     )
 end
 
-function find_camera(scene::SceneData, name::String)::Int32
+function find_camera(scene::SceneData, name::String)::Int
     if length(scene.cameras) == 0
         return invalid_id
     end
@@ -354,7 +367,7 @@ function add_sky(scene) end
 function eval_shading_position(
     scene::SceneData,
     instance::InstanceData,
-    element::Int32,
+    element::Int,
     uv::Vec2f,
     outgoing::Vec3f,
 )::Vec3f
@@ -373,7 +386,7 @@ end
 function eval_position(
     scene::SceneData,
     instance::InstanceData,
-    element::Int32,
+    element::Int,
     uv::Vec2f,
 )::Vec3f
     shape = scene.shapes[instance.shape]
@@ -416,7 +429,7 @@ end
 function eval_shading_normal(
     scene::SceneData,
     instance::InstanceData,
-    element::Int32,
+    element::Int,
     uv::Vec2f,
     outgoing::Vec3f,
 )::Vec3f
@@ -462,7 +475,7 @@ end
 function eval_normal(
     scene::SceneData,
     instance::InstanceData,
-    element::Int32,
+    element::Int,
     uv::Vec2f,
 )::Vec3f
     shape = scene.shapes[instance.shape]
@@ -512,11 +525,7 @@ function eval_normal(
     end
 end
 
-function eval_element_normal(
-    scene::SceneData,
-    instance::InstanceData,
-    element::Int32,
-)::Vec3f
+function eval_element_normal(scene::SceneData, instance::InstanceData, element::Int)::Vec3f
     shape = scene.shapes[instance.shape]
     if length(shape.triangles) != 0
         t = shape.triangles[element]
@@ -556,7 +565,7 @@ end
 function eval_material(
     scene::SceneData,
     instance::InstanceData,
-    element::Int32,
+    element::Int,
     uv::Vec2f,
 )::MaterialPoint
     material = scene.materials[instance.material]
@@ -604,7 +613,7 @@ end
 
 function eval_texture(
     scene::SceneData,
-    texture::Int32,
+    texture::Int,
     uv::Vec2f,
     ldr_as_linear::Bool = false,
     no_interpolation::Bool = false,
@@ -620,7 +629,7 @@ end
 function eval_color(
     scene::SceneData,
     instance::InstanceData,
-    element::Int32,
+    element::Int,
     uv::Vec2f,
 )::Vec4f
     shape = scene.shapes[instance.shape]
@@ -652,7 +661,7 @@ end
 function eval_normalmap(
     scene::SceneData,
     instance::InstanceData,
-    element::Int32,
+    element::Int,
     uv::Vec2f,
 )::Vec3f
     shape = scene.shapes[instance.shape]
@@ -684,7 +693,7 @@ end
 function eval_texcoord(
     scene::SceneData,
     instance::InstanceData,
-    element::Int32,
+    element::Int,
     uv::Vec2f,
 )::Vec2f
     shape = scene.shapes[instance.shape]
@@ -748,10 +757,10 @@ function eval_texture(
         end
     end
 
-    i::Int32 = clamp(trunc(Int32, s), 0, size[1] - 1)
-    j::Int32 = clamp(trunc(Int32, t), 0, size[2] - 1)
-    ii::Int32 = (i + 1) % size[1]
-    jj::Int32 = (j + 1) % size[2]
+    i = clamp(trunc(Int, s), 0, size[1] - 1)
+    j = clamp(trunc(Int, t), 0, size[2] - 1)
+    ii = (i + 1) % size[1]
+    jj = (j + 1) % size[2]
     u = s - i
     v = t - j
 
@@ -765,7 +774,7 @@ function eval_texture(
     end
 end
 
-function lookup_texture(texture::TextureData, i::Int32, j::Int32, as_linear::Bool)::Vec4f
+function lookup_texture(texture::TextureData, i::Int, j::Int, as_linear::Bool)::Vec4f
     color = Vec4f(0, 0, 0, 0)
     if (length(texture.pixelsf) != 0)
         color = texture.pixelsf[j * texture.width + i + 1]
@@ -782,7 +791,7 @@ end
 function eval_element_tangents(
     scene::SceneData,
     instance::InstanceData,
-    element::Int32,
+    element::Int,
 )::Tuple{Vec3f,Vec3f}
     shape = scene.shapes[instance.shape]
     if (length(shape.triangles) != 0 && length(shape.texcoords) != 0)

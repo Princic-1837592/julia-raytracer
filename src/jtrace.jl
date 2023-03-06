@@ -31,6 +31,7 @@ function main(params::Params)
     end
     println("loading scene...")
     scene = load_scene(params.scene, params.noparallel)
+    #     return
     if params.addsky
         println("adding sky...")
         add_sky(scene)
@@ -104,6 +105,7 @@ else
     )
     #     scene = "tests/features1/features1"
     #     scene = "tests/features1/no_environ_floor"
+    #     scene = "tests/features1/no_textures"
     scene = "tests/features1/bunny"
     #     scene = "tests/features2/features2"
     #     scene = "tests/features2/no_environ_floor"
@@ -122,7 +124,7 @@ else
             "$(scene).json";
             output = "$(scene).png",
             samples = 1,
-            resolution = 50,
+            resolution = 20,
             sampler = "naive",
             #             envhidden = true,
             noparallel = true,

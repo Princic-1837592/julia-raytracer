@@ -11,7 +11,7 @@ using PlyIO: load_ply, ArrayProperty, ListProperty, Ply
 using ..Math: Vec2i, Vec3f, Vec4f, Vec3i, Vec4i, Vec2f
 
 mutable struct ShapeData
-    points    :: Vector{Int32}
+    points    :: Vector{Int}
     lines     :: Vector{Vec2i}
     triangles :: Vector{Vec3i}
     quads     :: Vector{Vec4i}
@@ -26,27 +26,27 @@ mutable struct ShapeData
 end
 
 struct ShapeIntersection
-    element  :: Int32
+    element  :: Int
     uv       :: Vec2f
     distance :: Float32
     hit      :: Bool
 
     ShapeIntersection() = new(-1, Vec2f(0.0, 0.0), 0.0, false)
-    ShapeIntersection(element::Int32, uv::Vec2f, distance::Float32, hit::Bool) =
+    ShapeIntersection(element::Int, uv::Vec2f, distance::Float32, hit::Bool) =
         new(element, uv, distance, hit)
 end
 
 struct SceneIntersection
-    instance :: Int32
-    element  :: Int32
+    instance :: Int
+    element  :: Int
     uv       :: Vec2f
     distance :: Float32
     hit      :: Bool
 
     SceneIntersection() = new(-1, -1, Vec2f(0.0, 0.0), 0.0, false)
     SceneIntersection(
-        instance::Int32,
-        element::Int32,
+        instance::Int,
+        element::Int,
         uv::Vec2f,
         distance::Float32,
         hit::Bool,
@@ -74,7 +74,7 @@ function load_shape(path::String, shape::ShapeData)::Bool
     result = get_faces(ply, "face", "vertex_indices", shape.triangles, shape.quads)
     shape.lines = Vector{Vec2i}(undef, 0)
     result = get_lines(ply, "line", "vertex_indices", shape.lines)
-    shape.points = Vector{Int32}(undef, 0)
+    shape.points = Vector{Int}(undef, 0)
     result = get_list_values(ply, "point", "vertex_indices", shape.points)
     #todo-check if correct. used to index @bvh:78, maybe increasing is needed here
     for collection in [shape.points, shape.lines, shape.triangles, shape.quads]
@@ -334,10 +334,7 @@ function get_vec4i_array(property::ListProperty, quads::Vector{Vec4i})::Bool
     return true
 end
 
-function get_vec3i_array(
-    property::ListProperty{UInt8,Int32},
-    triangles::Vector{Vec3i},
-)::Bool
+function get_vec3i_array(property::ListProperty, triangles::Vector{Vec3i})::Bool
     sizehint!(triangles, length(property.start_inds) - 1)
     for i in 1:(length(property.start_inds) - 1)
         index = property.start_inds[i]
@@ -437,7 +434,7 @@ function get_list_values(
     ply::Ply,
     s_element::String,
     s_property::String,
-    values::Vector{Int32},
+    values::Vector{Int},
 )::Bool
     element = try
         ply[s_element]
