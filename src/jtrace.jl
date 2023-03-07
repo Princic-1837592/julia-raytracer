@@ -56,6 +56,7 @@ function main(params::Params)
     println("making state...")
     state = make_trace_state(scene, params)
     println("tracing samples...")
+    println("load scene: 00:00:00.220\nbuild bvh: 00:00:00.341")
     render_ns = time_ns()
     for _sample in 1:(params.samples)
         sample_ns = time_ns()
@@ -92,22 +93,23 @@ if abspath(PROGRAM_FILE) == @__FILE__
     main(parse_cli_args(ARGS))
 else
     format(pwd(); overwrite = true)
-    println("first run is fake, ignore this")
-    main(
-        Params(
-            "tests/features1/sphere.json";
-            output = "tests/features1/sphere.png",
-            samples = 1,
-            resolution = 10,
-            sampler = "naive",
-            bounces = 0,
-            envhidden = true,
-        ),
-    )
+    #     println("first run is fake, ignore this")
+    #     main(
+    #         Params(
+    #             "tests/features1/sphere.json";
+    #             output = "tests/features1/sphere.png",
+    #             samples = 1,
+    #             resolution = 10,
+    #             sampler = "naive",
+    #             bounces = 0,
+    #             envhidden = true,
+    #         ),
+    #     )
     #     scene = "tests/features1/features1"
+    scene = "tests/features1/features1_matte"
     #     scene = "tests/features1/no_environ_floor"
     #     scene = "tests/features1/no_textures"
-    scene = "tests/features1/bunny"
+    #     scene = "tests/features1/bunny"
     #     scene = "tests/features2/features2"
     #     scene = "tests/features2/no_environ_floor"
     #     scene = "tests/materials1/materials1"
@@ -120,15 +122,18 @@ else
     #     scene = "tests/shapes1/no_environ_floor"
     #     scene = "tests/shapes2/shapes2"
     #     scene = "tests/shapes2/no_environ_floor"
-    main(Params(
-        "$(scene).json";
-        output = "$(scene).png",
-        samples = 1,
-        #             resolution = 20,
-        sampler = "naive",
-        #             envhidden = true,
-        #             noparallel = true,
-    ))
+    main(
+        Params(
+            "$(scene).json";
+            output = "$(scene).png",
+            samples = 1,
+            resolution = 40,
+            sampler = "naive",
+            envhidden = true,
+            noparallel = true,
+            bounces = 8,
+        ),
+    )
 end
 
 end

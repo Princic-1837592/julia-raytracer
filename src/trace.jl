@@ -116,6 +116,7 @@ function trace_naive(
             end
             break
         end
+        #         @printf("radiance: %.5f %.5f %.5f ", radiance[1], radiance[2], radiance[3])
 
         outgoing = -ray.d
         #confirmed correct
@@ -196,6 +197,8 @@ function trace_naive(
         incoming = Vec3f(0, 0, 0)
         if (material.roughness != 0)
             incoming = sample_bsdfcos(material, normal, outgoing, rand1f(), rand2f())
+            #             incoming =
+            #                 sample_bsdfcos(material, normal, outgoing, 0.5f0, Vec2f(0.3f0, 0.2f0))
             if (incoming == Vec3f(0, 0, 0))
                 break
             end
@@ -204,6 +207,7 @@ function trace_naive(
                 sample_bsdfcos_pdf(material, normal, outgoing, incoming)
         else
             incoming = sample_delta(material, normal, outgoing, rand1f())
+            #             incoming = sample_delta(material, normal, outgoing, 0.4f0)
             if (incoming == Vec3f(0, 0, 0))
                 break
             end
@@ -225,8 +229,10 @@ function trace_naive(
         end
 
         ray = Ray3f(position, incoming)
+        #         @printf("radiance: %.5f %.5f %.5f\n", radiance[1], radiance[2], radiance[3])
     end
-    #     @printf("radiance: %.5f %.5f %.5f ", radiance[1], radiance[2], radiance[3])
+    #     @printf("\n")
+    #     @printf("radiance: %.5f %.5f %.5f\n", radiance[1], radiance[2], radiance[3])
     #     @printf("albedo: %.5f %.5f %.5f ", hit_albedo[1], hit_albedo[2], hit_albedo[3])
     #     @printf("normal: %.5f %.5f %.5f\n", hit_normal[1], hit_normal[2], hit_normal[3])
     #     @printf("hit: %d ", hit)
@@ -256,27 +262,28 @@ function trace_sample(
 )
     camera = scene.cameras[params.camera]
     idx = state.width * j + i + 1
-    #     ray = sample_camera(
-    #         camera,
-    #         Vec2i(i, j),
-    #         Vec2i(state.width, state.height),
-    #         rand2f(),
-    #         rand2f(),
-    #         params.tentfilter,
-    #     )
+    x = rand2f()
     ray = sample_camera(
         camera,
         Vec2i(i, j),
         Vec2i(state.width, state.height),
-        Vec2f(),
-        Vec2f(),
+        x,
+        rand2f(),
         params.tentfilter,
     )
-    @printf("ray.d: %.5f %.5f %.5f\n", ray.d[1], ray.d[2], ray.d[3])
+    #     ray = sample_camera(
+    #         camera,
+    #         Vec2i(i, j),
+    #         Vec2i(state.width, state.height),
+    #         Vec2f(),
+    #         Vec2f(),
+    #         params.tentfilter,
+    #     )
+    #     @printf("ray.d: %d %d %.5f %.5f %.5f\n", i, j, ray.d[1], ray.d[2], ray.d[3])
     #confirmed correct hit, albedo, normal
     radiance, hit, albedo, normal =
         SAMPLERS[params.sampler](scene, bvh, lights, ray, params)
-    #     @printf("radiance: %.5f %.5f %.5f ", radiance[1], radiance[2], radiance[3])
+    #             @printf("radiance: %.5f %.5f %.5f ", radiance[1], radiance[2], radiance[3])
     if !all(isfinite.(radiance))
         radiance = Vec3f(0, 0, 0)
     end
@@ -333,8 +340,11 @@ function sample_camera(
     tent::Bool,
 )::Ray3f
     if !tent
+        @printf("ij: %d %d\n", ij[1], ij[2])
         uv = Vec2f((ij[1] + puv[1]) / image_size[1], (ij[2] + puv[2]) / image_size[2])
-        eval_camera(camera, uv, sample_disk(luv))
+        sd = sample_disk(luv)
+        #         @printf("uv %.5f %.5f sd %.5f %.5f\n", uv[1], uv[2], sd[1], sd[2])
+        eval_camera(camera, uv, sd)
     else
         #todo
         nothing
@@ -354,6 +364,9 @@ function get_image(image::ImageData, state::TraceState)
         image.data = state.image
     else
         image.data = state.denoised
+    end
+    for pixel in image.data
+        #         @printf("pixel: %.5f %.5f %.5f %.5f\n", pixel[1], pixel[2], pixel[3], pixel[4])
     end
 end
 
