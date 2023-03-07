@@ -236,8 +236,8 @@ function trace_sample(
         radiance = Vec3f(0, 0, 0)
     end
     #todo
-    if (maximum(radiance) > 10)
-        radiance = radiance .* (10 / maximum(radiance))
+    if (maximum(radiance) > params.clamp)
+        radiance = radiance .* (params.clamp / maximum(radiance))
     end
     weight::Float32 = 1 / (sample + 1)
     if hit

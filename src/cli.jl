@@ -67,25 +67,30 @@ cli_parser = ArgParseSettings()
     help = "sampler type"
     arg_type = String
     default = "path"
+    "--clamp"
+    help = "clamp image"
+    arg_type = Float32
+    default = 10.0f0
 end
 
 const SAMPLER_TYPES = ["path", "naive"]
 
 mutable struct Params
-    scene::String
-    output::String
-    camera::Any
-    addsky::Bool
-    envname::String
-    resolution::Int
-    samples::Int
-    bounces::Int
-    denoise::Bool
-    noparallel::Bool
-    highqualitybvh::Bool
-    envhidden::Bool
-    tentfilter::Bool
-    sampler::Int
+    scene          :: String
+    output         :: String
+    camera         :: Any
+    addsky         :: Bool
+    envname        :: String
+    resolution     :: Int
+    samples        :: Int
+    bounces        :: Int
+    denoise        :: Bool
+    noparallel     :: Bool
+    highqualitybvh :: Bool
+    envhidden      :: Bool
+    tentfilter     :: Bool
+    sampler        :: Int
+    clamp          :: Int
 
     function Params(
         scene::String;
@@ -102,6 +107,7 @@ mutable struct Params
         envhidden = false,
         tentfilter = false,
         sampler = "path",
+        clamp = 10.0f0,
     )
         sidx = indexin([sampler], SAMPLER_TYPES)
         sampler = if sidx[1] == nothing
@@ -124,6 +130,7 @@ mutable struct Params
             envhidden,
             tentfilter,
             sampler,
+            clamp,
         )
     end
 
@@ -143,6 +150,7 @@ mutable struct Params
             params["envhidden"],
             params["tentfilter"],
             params["sampler"],
+            params["clamp"],
         )
     end
 end
