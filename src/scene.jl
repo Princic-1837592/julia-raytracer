@@ -325,13 +325,16 @@ function find_camera(scene::SceneData, name::String)::Int
 end
 
 function eval_camera(camera::CameraData, image_uv::Vec2f, lens_uv::Vec2f)::Ray3f
-    film = if camera.aspect >= 1
-        Vec2f(camera.film, camera.film / camera.aspect)
-    else
+    film =
+        camera.aspect >= 1 ? Vec2f(camera.film, camera.film / camera.aspect) :
         Vec2f(camera.film * camera.aspect, camera.film)
-    end
+
     if !camera.orthographic
-        q = Vec3f(film[1] * (0.5 - image_uv[1]), film[2] * (image_uv[2] - 0.5), camera.lens)
+        q = Vec3f(
+            film[1] * (0.5f0 - image_uv[1]),
+            film[2] * (image_uv[2] - 0.5f0),
+            camera.lens,
+        )
         #ray direction through the lens center
         dc = -normalize(q)
         #point on the lens
@@ -345,8 +348,8 @@ function eval_camera(camera::CameraData, image_uv::Vec2f, lens_uv::Vec2f)::Ray3f
     else
         scale = 1 / camera.lens
         q = Vec3f(
-            film[1] * (0.5 - image_uv[1]) * scale,
-            film[2] * (image_uv[2] - 0.5) * scale,
+            film[1] * (0.5f0 - image_uv[1]) * scale,
+            film[2] * (image_uv[2] - 0.5f0) * scale,
             camera.lens,
         )
         #point on the lens
@@ -364,6 +367,7 @@ end
 
 function add_sky(scene) end
 
+#confirmed correct
 function eval_shading_position(
     scene::SceneData,
     instance::InstanceData,
@@ -426,6 +430,7 @@ function eval_position(
     end
 end
 
+#confirmed correct
 function eval_shading_normal(
     scene::SceneData,
     instance::InstanceData,
@@ -561,7 +566,7 @@ function eval_element_normal(scene::SceneData, instance::InstanceData, element::
     end
 end
 
-#yocto_scene.cpp 521
+#confirmed correct
 function eval_material(
     scene::SceneData,
     instance::InstanceData,

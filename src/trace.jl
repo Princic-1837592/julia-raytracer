@@ -118,6 +118,7 @@ function trace_naive(
         end
 
         outgoing = -ray.d
+        #confirmed correct
         position = eval_shading_position(
             scene,
             scene.instances[intersection.instance],
@@ -125,6 +126,7 @@ function trace_naive(
             intersection.uv,
             outgoing,
         )
+        #confirmed correct
         normal = eval_shading_normal(
             scene,
             scene.instances[intersection.instance],
@@ -132,12 +134,46 @@ function trace_naive(
             intersection.uv,
             outgoing,
         )
+        #confirmed correct
         material = eval_material(
             scene,
             scene.instances[intersection.instance],
             intersection.element,
             intersection.uv,
         )
+        #         @printf("position: %.5f %.5f %.5f ", position[1], position[2], position[3])
+        #         @printf("normal: %.5f %.5f %.5f\n", normal[1], normal[2], normal[3])
+        #         @printf("%s\n", material.type)
+        #         @printf(
+        #             "emission: %.5f %.5f %.5f ",
+        #             material.emission[1],
+        #             material.emission[2],
+        #             material.emission[3]
+        #         )
+        #         @printf(
+        #             "color: %.5f %.5f %.5f\n",
+        #             material.color[1],
+        #             material.color[2],
+        #             material.color[3]
+        #         )
+        #         @printf("opacity: %.5f ", material.opacity)
+        #         @printf("roughness: %.5f ", material.roughness)
+        #         @printf("metallic: %.5f ", material.metallic)
+        #         @printf("ior: %.5f ", material.ior)
+        #         @printf("scanisotropy: %.5f ", material.scanisotropy)
+        #         @printf("trdepth: %.5f\n", material.trdepth)
+        #         @printf(
+        #             "density: %.5f %.5f %.5f ",
+        #             material.density[1],
+        #             material.density[2],
+        #             material.density[3]
+        #         )
+        #         @printf(
+        #             "scattering: %.5f %.5f %.5f\n",
+        #             material.scattering[1],
+        #             material.scattering[2],
+        #             material.scattering[3]
+        #         )
 
         if (material.opacity < 1 && rand1f() >= material.opacity)
             if opbounce > 128
@@ -151,7 +187,6 @@ function trace_naive(
 
         if bounce == 0
             hit = true
-            #todo albedo is different
             hit_albedo = material.color
             hit_normal = normal
         end
@@ -191,12 +226,11 @@ function trace_naive(
 
         ray = Ray3f(position, incoming)
     end
-    #     @printf("ray_: %f %f %f\n", ray_.d[1], ray_.d[2], ray_.d[3])
-    #     @printf("radiance: %f %f %f\n", radiance[1], radiance[2], radiance[3])
-    #     @printf("albedo: %f %f %f\n", hit_albedo[1], hit_albedo[2], hit_albedo[3])
-    #     @printf("normal: %f %f %f\n", hit_normal[1], hit_normal[2], hit_normal[3])
-    #     @printf("hit: %d\n", hit)
-    #     @printf("weight: %f %f %f\n", weight[1], weight[2], weight[3])
+    #     @printf("radiance: %.5f %.5f %.5f ", radiance[1], radiance[2], radiance[3])
+    #     @printf("albedo: %.5f %.5f %.5f ", hit_albedo[1], hit_albedo[2], hit_albedo[3])
+    #     @printf("normal: %.5f %.5f %.5f\n", hit_normal[1], hit_normal[2], hit_normal[3])
+    #     @printf("hit: %d ", hit)
+    #     @printf("weight: %.5f %.5f %.5f\n", weight[1], weight[2], weight[3])
 
     return (radiance, hit, hit_albedo, hit_normal)
 end
@@ -222,16 +256,27 @@ function trace_sample(
 )
     camera = scene.cameras[params.camera]
     idx = state.width * j + i + 1
+    #     ray = sample_camera(
+    #         camera,
+    #         Vec2i(i, j),
+    #         Vec2i(state.width, state.height),
+    #         rand2f(),
+    #         rand2f(),
+    #         params.tentfilter,
+    #     )
     ray = sample_camera(
         camera,
         Vec2i(i, j),
         Vec2i(state.width, state.height),
-        Vec2f(0, 0),
-        Vec2f(0, 0),
+        Vec2f(),
+        Vec2f(),
         params.tentfilter,
     )
+    @printf("ray.d: %.5f %.5f %.5f\n", ray.d[1], ray.d[2], ray.d[3])
+    #confirmed correct hit, albedo, normal
     radiance, hit, albedo, normal =
         SAMPLERS[params.sampler](scene, bvh, lights, ray, params)
+    #     @printf("radiance: %.5f %.5f %.5f ", radiance[1], radiance[2], radiance[3])
     if !all(isfinite.(radiance))
         radiance = Vec3f(0, 0, 0)
     end
@@ -239,7 +284,7 @@ function trace_sample(
     if (maximum(radiance) > params.clamp)
         radiance = radiance .* (params.clamp / maximum(radiance))
     end
-    weight::Float32 = 1 / (sample + 1)
+    weight = 1.0f0 / (sample + 1)
     if hit
         state.image[idx] =
             lerp(state.image[idx], Vec4f(radiance.x, radiance.y, radiance.z, 1), weight)
@@ -258,26 +303,27 @@ function trace_sample(
         state.normal[idx] = lerp(state.normal[idx], -ray.d, weight)
     end
     #     @printf(
-    #         "image: %f %f %f %f\n",
+    #         "image: %.5f %.5f %.5f %.5f ",
     #         state.image[idx][1],
     #         state.image[idx][2],
     #         state.image[idx][3],
     #         state.image[idx][4],
     #     )
     #     @printf(
-    #         "albedo: %f %f %f\n",
+    #         "albedo: %.5f %.5f %.5f ",
     #         state.albedo[idx][1],
     #         state.albedo[idx][2],
     #         state.albedo[idx][3]
     #     )
     #     @printf(
-    #         "normal: %f %f %f\n",
+    #         "normal: %.5f %.5f %.5f\n",
     #         state.normal[idx][1],
     #         state.normal[idx][2],
     #         state.normal[idx][3]
     #     )
 end
 
+#confirmed correct
 function sample_camera(
     camera::CameraData,
     ij::Vec2i,
