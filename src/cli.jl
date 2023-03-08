@@ -71,6 +71,10 @@ cli_parser = ArgParseSettings()
     help = "clamp image"
     arg_type = Float32
     default = 10.0f0
+    "--nocaustics"
+    help = "disable caustics"
+    arg_type = Bool
+    default = false
 end
 
 const SAMPLER_TYPES = ["path", "naive"]
@@ -91,6 +95,7 @@ mutable struct Params
     tentfilter     :: Bool
     sampler        :: Int
     clamp          :: Int
+    nocaustics     :: Bool
 
     function Params(
         scene::String;
@@ -108,6 +113,7 @@ mutable struct Params
         tentfilter = false,
         sampler = "path",
         clamp = 10.0f0,
+        nocaustics = false,
     )
         sidx = indexin([sampler], SAMPLER_TYPES)
         sampler = if sidx[1] == nothing
@@ -131,6 +137,7 @@ mutable struct Params
             tentfilter,
             sampler,
             clamp,
+            nocaustics,
         )
     end
 
@@ -157,6 +164,7 @@ mutable struct Params
             params["tentfilter"],
             sampler,
             params["clamp"],
+            params["nocaustics"],
         )
     end
 end
