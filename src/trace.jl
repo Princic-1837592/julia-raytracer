@@ -79,14 +79,18 @@ function trace_samples(state::TraceState, scene::SceneData, bvh::SceneBvh, light
     if state.samples >= params.samples
         return
     end
-    if params.noparallel || true
+    if params.noparallel
         for j in 0:(state.height - 1)
             for i in 0:(state.width - 1)
                 trace_sample(state, scene, bvh, lights, i, j, state.samples, params)
             end
         end
     else
-        #todo
+        Threads.@threads for j in 0:(state.height - 1)
+            Threads.@threads for i in 0:(state.width - 1)
+                trace_sample(state, scene, bvh, lights, i, j, state.samples, params)
+            end
+        end
     end
     state.samples += 1
 end
@@ -197,8 +201,6 @@ function trace_naive(
         incoming = Vec3f(0, 0, 0)
         if (material.roughness != 0)
             incoming = sample_bsdfcos(material, normal, outgoing, rand1f(), rand2f())
-            #             incoming =
-            #                 sample_bsdfcos(material, normal, outgoing, 0.5f0, Vec2f(0.3f0, 0.2f0))
             if (incoming == Vec3f(0, 0, 0))
                 break
             end
@@ -207,7 +209,6 @@ function trace_naive(
                 sample_bsdfcos_pdf(material, normal, outgoing, incoming)
         else
             incoming = sample_delta(material, normal, outgoing, rand1f())
-            #             incoming = sample_delta(material, normal, outgoing, 0.4f0)
             if (incoming == Vec3f(0, 0, 0))
                 break
             end
@@ -262,15 +263,25 @@ function trace_sample(
 )
     camera = scene.cameras[params.camera]
     idx = state.width * j + i + 1
-    x = rand2f()
+    if i == 33 && j == 8
+        #         @printf("next rand: %.5f\n", rand1f())
+    end
+    puv = rand2f()
+    luv = rand2f()
+    #     @printf("ij: %d %d ", i, j)
+    #     @printf("puv: %.5f %.5f ", puv[1], puv[2])
+    #     @printf("luv: %.5f %.5f\n", luv[1], luv[2])
     ray = sample_camera(
         camera,
         Vec2i(i, j),
         Vec2i(state.width, state.height),
-        x,
-        rand2f(),
+        puv,
+        luv,
         params.tentfilter,
     )
+    if i == 33 && j == 8
+        #         @printf("next rand: %.5f\n", rand1f())
+    end
     #     ray = sample_camera(
     #         camera,
     #         Vec2i(i, j),
@@ -340,7 +351,6 @@ function sample_camera(
     tent::Bool,
 )::Ray3f
     if !tent
-        @printf("ij: %d %d\n", ij[1], ij[2])
         uv = Vec2f((ij[1] + puv[1]) / image_size[1], (ij[2] + puv[2]) / image_size[2])
         sd = sample_disk(luv)
         #         @printf("uv %.5f %.5f sd %.5f %.5f\n", uv[1], uv[2], sd[1], sd[2])
@@ -361,11 +371,11 @@ function get_image(image::ImageData, state::TraceState)
     image.width = state.width
     image.height = state.height
     if length(state.denoised) == 0
-        image.data = state.image
+        image.pixels = state.image
     else
-        image.data = state.denoised
+        image.pixels = state.denoised
     end
-    for pixel in image.data
+    for pixel in image.pixels
         #         @printf("pixel: %.5f %.5f %.5f %.5f\n", pixel[1], pixel[2], pixel[3], pixel[4])
     end
 end

@@ -75,17 +75,7 @@ function main(params::Params)
     println("saved image to ", params.output)
 end
 
-main() = main(
-    Params(
-        "tests/features1/bunny.json";
-        output = "tests/features1/bunny.png",
-        samples = 1,
-        resolution = 50,
-        sampler = "naive",
-        #             envhidden = true,
-        noparallel = true,
-    ),
-)
+main(args::String) = main(parse_cli_args(split(args)))
 
 using JuliaFormatter: format
 
@@ -122,18 +112,18 @@ else
     #     scene = "tests/shapes1/no_environ_floor"
     #     scene = "tests/shapes2/shapes2"
     #     scene = "tests/shapes2/no_environ_floor"
-    main(
-        Params(
-            "$(scene).json";
-            output = "$(scene).png",
-            samples = 1,
-            resolution = 40,
-            sampler = "naive",
-            envhidden = true,
-            noparallel = true,
-            bounces = 8,
-        ),
-    )
+    #     main(
+    #         Params(
+    #             "$(scene).json";
+    #             output = "$(scene).png",
+    #             samples = 1,
+    #                                     resolution = 100,
+    #             sampler = "naive",
+    #             envhidden = true,
+    #             #             noparallel = true,
+    #             bounces = 8,
+    #         ),
+    #     )
 end
 
 end

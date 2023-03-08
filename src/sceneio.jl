@@ -17,8 +17,10 @@ using ..Scene:
     EnvironmentData,
     load_texture
 using ..Shape: load_shape, ShapeData
-using ..Image: ImageData
+using ..Image: ImageData, image_rgb_to_srgb
 using Images: save, RGBA, clamp01nan
+using ..Math: Vec4b, Vec4f
+using ..Color: float_to_byte, rgb_to_srgb
 
 #todo check all return values
 function load_scene(filename::String, no_parallel::Bool)::SceneData
@@ -99,17 +101,30 @@ function add_environment(scene, params) end
 
 function save_image(filename::String, image::ImageData)
     ext = lowercase(splitext(filename)[2])
-    if ext != ".png"
+    if ext == ".png"
+        matrix = Array{RGBA{Float32},2}(undef, image.height, image.width)
+        pixels = to_srgb(image)
+        #         pixels = image.pixels
+        for i in 1:(image.height)
+            for j in 1:(image.width)
+                vec4f = pixels[(i - 1) * image.width + j]
+                matrix[i, j] = RGBA(vec4f[1], vec4f[2], vec4f[3], vec4f[4])
+            end
+        end
+        save(filename, clamp01nan.(matrix))
+    else
         error(ext, " is not supported")
     end
-    matrix = Array{RGBA{Float32},2}(undef, image.height, image.width)
-    for i in 1:(image.height)
-        for j in 1:(image.width)
-            vec4f = image.data[(i - 1) * image.width + j]
-            matrix[i, j] = RGBA(vec4f[1], vec4f[2], vec4f[3], vec4f[4])
-        end
+end
+
+function to_srgb(image::ImageData)::Vector{Vec4f}
+    pixelsb = Vector{Vec4f}(undef, length(image.pixels))
+    if (image.linear)
+        image_rgb_to_srgb(pixelsb, image.pixels)
+    else
+        float_to_byte(pixelsb, image.pixels)
     end
-    save(filename, clamp01nan.(matrix))
+    pixelsb
 end
 
 end
