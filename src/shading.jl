@@ -7,7 +7,7 @@ shading:
 
 module Shading
 
-using ..Math: Vec3f, Vec2f, pif, dot, Mat3f, normalize, transform_direction
+using ..Math: Vec3f, Vec2f, pif, dot, Mat3f, normalize, transform_direction, reflect
 using ..Sampling: sample_hemisphere_cos_pdf
 
 function eval_matte(color::Vec3f, normal::Vec3f, outgoing::Vec3f, incoming::Vec3f)::Vec3f
@@ -384,14 +384,14 @@ function sample_transparent(
     end
 end
 
-function sample_tranparent_pdf(
+function sample_transparent_pdf(
     color::Vec3f,
     ior::Float32,
     roughness::Float32,
     normal::Vec3f,
     outgoing::Vec3f,
     incoming::Vec3f,
-)::Float32end
+)::Float32
     up_normal = dot(normal, outgoing) <= 0 ? -normal : normal
     if (dot(normal, incoming) * dot(normal, outgoing) >= 0)
         halfway = normalize(incoming + outgoing)
@@ -438,7 +438,7 @@ function sample_transparent(
     end
 end
 
-function sample_tranparent_pdf(
+function sample_transparent_pdf(
     color::Vec3f,
     ior::Float32,
     normal::Vec3f,
@@ -638,7 +638,7 @@ function sample_translucent_pdf(
     outgoing::Vec3f,
     incoming::Vec3f,
 )::Float32
-    if (dot(normal, incoming) * dot(normal, outgoing) >= 0)
+    if dot(normal, incoming) * dot(normal, outgoing) >= 0
         return 0
     end
     up_normal = if dot(normal, outgoing) <= 0
@@ -717,8 +717,7 @@ function sample_phasefunction(anisotropy::Float32, outgoing::Vec3f, rn::Vec2f)::
 
     sin_theta = sqrt(max(0.0f, 1 - cos_theta * cos_theta))
     phi = 2 * pif * rn.x
-    local_incoming = Vec3f
-    sin_theta * cos(phi), sin_theta * sin(phi), cos_theta
+    local_incoming = Vec3f(sin_theta * cos(phi), sin_theta * sin(phi), cos_theta)
     basis_fromz(-outgoing) * local_incoming
 end
 
@@ -765,6 +764,127 @@ function basis_fromz(v::Vec3f)::Mat3f
     x = Vec3f(1.0f0 + sign * z.x * z.x * a, sign * b, -sign * z.x)
     y = Vec3f(b, sign + z.y * z.y * a, -z.y)
     return Mat3f(x, y, z)
+end
+
+function microfacet_distribution(
+    roughness::Float32,
+    normal::Vec3f,
+    halfway::Vec3f,
+    ggx::Bool = true,
+)::Float32
+    cosine = dot(normal, halfway)
+    if cosine <= 0
+        return 0
+    end
+    roughness2 = roughness * roughness
+    cosine2 = cosine * cosine
+    if (ggx)
+        roughness2 /
+        (pif * (cosine2 * roughness2 + 1 - cosine2) * (cosine2 * roughness2 + 1 - cosine2))
+    else
+        exp((cosine2 - 1) / (roughness2 * cosine2)) / (pif * roughness2 * cosine2 * cosine2)
+    end
+end
+
+function microfacet_shadowing1(
+    roughness::Float32,
+    normal::Vec3f,
+    halfway::Vec3f,
+    direction::Vec3f,
+    ggx::Bool = true,
+)::Float32
+    cosine = dot(normal, direction)
+    cosineh = dot(halfway, direction)
+    if (cosine * cosineh <= 0)
+        return 0
+    end
+    roughness2 = roughness * roughness
+    cosine2 = cosine * cosine
+    if (ggx)
+        2 * abs(cosine) / (abs(cosine) + sqrt(cosine2 - roughness2 * cosine2 + roughness2))
+    else
+        ci = abs(cosine) / (roughness * sqrt(1 - cosine2))
+        ci < 1.6f0 ?
+        (3.535f0 * ci + 2.181f0 * ci * ci) / (1.0f0 + 2.276f0 * ci + 2.577f0 * ci * ci) :
+        1.0f0
+    end
+end
+
+microfacet_shadowing(
+    roughness::Float32,
+    normal::Vec3f,
+    halfway::Vec3f,
+    outgoing::Vec3f,
+    incoming::Vec3f,
+    ggx::Bool = true,
+) =
+    microfacet_shadowing1(roughness, normal, halfway, outgoing, ggx) *
+    microfacet_shadowing1(roughness, normal, halfway, incoming, ggx)
+
+function sample_microfacet(
+    roughness::Float32,
+    normal::Vec3f,
+    rn::Vec2f,
+    ggx::Bool = true,
+)::Vec3f
+    phi = 2 * pif * rn.x
+    theta = 0.0f0
+    if (ggx)
+        theta = atan(roughness * sqrt(rn.y / (1 - rn.y)))
+    else
+        roughness2 = roughness * roughness
+        theta = atan(sqrt(-roughness2 * log(1 - rn.y)))
+    end
+    local_half_vector = Vec3f(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta))
+    transform_direction(basis_fromz(normal), local_half_vector)
+end
+
+function sample_microfacet_pdf(
+    roughness::Float32,
+    normal::Vec3f,
+    halfway::Vec3f,
+    ggx::Bool = true,
+)::Float32
+    cosine = dot(normal, halfway)
+    if (cosine < 0)
+        return 0
+    end
+    microfacet_distribution(roughness, normal, halfway, ggx) * cosine
+end
+
+eta_to_reflectivity(eta::Vec3f)::Vec3f = ((eta - 1) * (eta - 1)) / ((eta + 1) * (eta + 1))
+
+function reflectivity_to_eta(reflectivity_::Vec3f)::Vec3f
+    reflectivity = clamp.(reflectivity_, 0.0f0, 0.99f0)
+    (1 .+ sqrt.(reflectivity)) ./ (1 .- sqrt.(reflectivity))
+end
+
+eta_to_reflectivity(eta::Vec3f, etak::Vec3f)::Vec3f =
+    ((eta - 1) * (eta - 1) + etak * etak) / ((eta + 1) * (eta + 1) + etak * etak)
+
+same_hemisphere(normal::Vec3f, outgoing::Vec3f, incoming::Vec3f)::Bool =
+    dot(normal, outgoing) * dot(normal, incoming) >= 0
+
+function fresnel_conductor(eta::Vec3f, etak::Vec3f, normal::Vec3f, outgoing::Vec3f)::Vec3f
+    cosw = dot(normal, outgoing)
+    if (cosw <= 0)
+        return Vec3f(0, 0, 0)
+    end
+    cosw = clamp(cosw, -1.0f0, 1.0f0)
+    cos2 = cosw * cosw
+    sin2 = clamp(1 - cos2, 0, 1)
+    eta2 = eta .* eta
+    etak2 = etak .* etak
+    t0 = eta2 .- etak2 .- sin2
+    a2plusb2 = sqrt.(t0 .* t0 .+ 4 .* eta2 .* etak2)
+    t1 = a2plusb2 .+ cos2
+    a = sqrt.((a2plusb2 .+ t0) ./ 2)
+    t2 = 2 .* a .* cosw
+    rs = (t1 .- t2) ./ (t1 .+ t2)
+    t3 = cos2 .* a2plusb2 .+ sin2 .* sin2
+    t4 = t2 .* sin2
+    rp = rs .* (t3 .- t4) ./ (t3 .+ t4)
+    (rp .+ rs) ./ 2
 end
 
 end

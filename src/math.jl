@@ -131,4 +131,6 @@ orthonormalize(a::Vec3f, b::Vec3f)::Vec3f = normalize(a - b * dot(a, b))
 
 transform_direction(a::Mat3f, b::Vec3f) = normalize(transform_vector(a, b))
 
+reflect(w::Vec3f, n::Vec3f)::Vec3f = -w + 2 * dot(n, w) * n
+
 end

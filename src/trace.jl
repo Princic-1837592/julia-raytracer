@@ -24,7 +24,16 @@ using ..Scene:
     subsurface,
     volumetric,
     gltfpbr
-using ..Shading: sample_matte, eval_matte, sample_matte_pdf
+using ..Shading:
+    sample_matte,
+    eval_matte,
+    sample_matte_pdf,
+    sample_reflective,
+    eval_reflective,
+    sample_reflective_pdf,
+    sample_glossy,
+    eval_glossy,
+    sample_glossy_pdf
 using ..Math: Vec2f, Vec3f, Vec4f, lerp, Vec2i, dot
 using ..Bvh: SceneBvh, intersect_scene_bvh
 using ..Image: make_image, ImageData
@@ -592,7 +601,7 @@ function sample_bsdfcos_pdf(
             incoming,
         )
     elseif material.type == transparent
-        sample_tranparent_pdf(
+        sample_transparent_pdf(
             material.color,
             material.ior,
             material.roughness,
@@ -646,7 +655,7 @@ function sample_delta_pdf(
     if material.type == reflective
         sample_reflective_pdf(material.color, normal, outgoing, incoming)
     elseif material.type == transparent
-        sample_tranparent_pdf(material.color, material.ior, normal, outgoing, incoming)
+        sample_transparent_pdf(material.color, material.ior, normal, outgoing, incoming)
     elseif material.type == refractive
         sample_refractive_pdf(material.color, material.ior, normal, outgoing, incoming)
     elseif material.type == volumetric
