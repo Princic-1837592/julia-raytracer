@@ -236,20 +236,19 @@ end
 function intersect_scene_bvh(
     sbvh::SceneBvh,
     scene::SceneData,
-    ray_::Ray3f,
+    ray::Ray3f,
     find_any::Bool,
 )::SceneIntersection
     bvh = sbvh.bvh
     if length(bvh.nodes) == 0
         return false
     end
-    stack = Vector{Int}(undef, 128)
-    fill!(stack, 0)
+    stack = Vector{Int}(undef, 32)
     node_cur = 1
     stack[node_cur] = 1
     node_cur += 1
     intersection = SceneIntersection()
-    ray = Ray3f(ray_.o, ray_.d, ray_.tmin, ray_.tmax)
+    #     ray = Ray3f(ray_)
     ray_dinv = Vec3f(1 / ray.d[1], 1 / ray.d[2], 1 / ray.d[3])
     ray_dsign = Vec3i(if ray.d[1] < 0
         1
@@ -315,20 +314,19 @@ end
 function intersect_shape_bvh(
     sbvh::ShapeBvh,
     shape::ShapeData,
-    ray_::Ray3f,
+    ray::Ray3f,
     find_any::Bool,
 )::ShapeIntersection
     bvh = sbvh.bvh
     if length(bvh.nodes) == 0
         return ShapeIntersection()
     end
-    stack = Vector{Int}(undef, 128)
-    fill!(stack, 0)
+    stack = Vector{Int}(undef, 32)
     node_cur = 1
     stack[node_cur] = 1
     node_cur += 1
     intersection = ShapeIntersection()
-    ray = Ray3f(ray_.o, ray_.d, ray_.tmin, ray_.tmax)
+    #     ray = Ray3f(ray_)
     ray_dinv = Vec3f(1 / ray.d[1], 1 / ray.d[2], 1 / ray.d[3])
     ray_dsign = Vec3i(if ray.d[1] < 0
         1
