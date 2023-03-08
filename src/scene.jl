@@ -858,4 +858,10 @@ function eval_environment(
     environment.emission .* Vec3f(eval_texture(scene, environment.emission_tex, texcoord))
 end
 
+is_delta(material::MaterialPoint)::Bool =
+    (material.type == reflective && material.roughness == 0) ||
+    (material.type == refractive && material.roughness == 0) ||
+    (material.type == transparent && material.roughness == 0) ||
+    (material.type == volumetric)
+
 end

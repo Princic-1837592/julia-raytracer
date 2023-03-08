@@ -7,6 +7,7 @@ trace:
 
 module Trace
 
+using DataStructures: Stack, first
 using ..Scene:
     SceneData,
     CameraData,
@@ -15,6 +16,7 @@ using ..Scene:
     eval_shading_normal,
     eval_material,
     eval_environment,
+    is_delta,
     MaterialPoint,
     matte,
     glossy,
@@ -104,7 +106,187 @@ function trace_samples(state::TraceState, scene::SceneData, bvh::SceneBvh, light
     state.samples += 1
 end
 
-function trace_path(scene::SceneData, bvh::SceneBvh, lights, ray::Ray3f, params) end
+function trace_path(scene::SceneData, bvh::SceneBvh, lights, ray_::Ray3f, params)
+    # initialize
+    radiance = Vec3f(0, 0, 0)
+    weight = Vec3f(1, 1, 1)
+    ray = ray_
+    volume_stack = Stack{MaterialPoint}()
+    max_roughness = 0.0f0
+    hit = false
+    hit_albedo = Vec3f(0, 0, 0)
+    hit_normal = Vec3f(0, 0, 0)
+    opbounce = 0
+
+    # trace  path
+    for bounce in 0:(params.bounces - 1)
+        # intersect next point
+        intersection = intersect_scene_bvh(bvh, scene, ray, false)
+        if (!intersection.hit)
+            if (bounce > 0 || !params.envhidden)
+                radiance += weight * eval_environment(scene, ray.d)
+            end
+            break
+        end
+
+        # handle transmission if inside a volume
+        in_volume = false
+        if (length(volume_stack) != 0)
+            vsdf = first(volume_stack)
+            distance = sample_transmittance(
+                vsdf.density,
+                intersection.distance,
+                rand1f(),
+                rand1f(),
+            )
+            weight *=
+                eval_transmittance(vsdf.density, distance) /
+                sample_transmittance_pdf(vsdf.density, distance, intersection.distance)
+            in_volume = distance < intersection.distance
+            intersection.distance = distance
+        end
+
+        # switch between surface and volume
+        if (!in_volume)
+            # prepare shading point
+            outgoing = -ray.d
+            position = eval_shading_position(
+                scene,
+                scene.instances[intersection.instance],
+                intersection.element,
+                intersection.uv,
+                outgoing,
+            )
+            #confirmed correct
+            normal = eval_shading_normal(
+                scene,
+                scene.instances[intersection.instance],
+                intersection.element,
+                intersection.uv,
+                outgoing,
+            )
+            #confirmed correct
+            material = eval_material(
+                scene,
+                scene.instances[intersection.instance],
+                intersection.element,
+                intersection.uv,
+            )
+
+            # correct roughness
+            if (params.nocaustics)
+                max_roughness = max(material.roughness, max_roughness)
+                material.roughness = max_roughness
+            end
+
+            # handle opacity
+            if (material.opacity < 1 && rand1f() >= material.opacity)
+                if (opbounce > 128)
+                    break
+                end
+                opbounce += 1
+                ray = Ray3f(position + ray.d * 1e-2, ray.d)
+                bounce -= 1
+                continue
+            end
+
+            # set hit variables
+            if (bounce == 0)
+                hit = true
+                hit_albedo = material.color
+                hit_normal = normal
+            end
+
+            # accumulate emission
+            radiance += weight .* eval_emission(material, normal, outgoing)
+
+            # next direction
+            incoming = Vec3f(0, 0, 0)
+            if (!is_delta(material))
+                if (rand1f() < 0.5f0)
+                    incoming =
+                        sample_bsdfcos(material, normal, outgoing, rand1f(), rand2f())
+                else
+                    incoming =
+                        sample_lights(scene, lights, position, rand1f(), rand1f(), rand2f())
+                end
+                if (incoming == Vec3f(0, 0, 0))
+                    break
+                end
+                weight *=
+                    eval_bsdfcos(material, normal, outgoing, incoming) / (
+                        0.5f0 * sample_bsdfcos_pdf(material, normal, outgoing, incoming) +
+                        0.5f0 * sample_lights_pdf(scene, bvh, lights, position, incoming)
+                    )
+            else
+                incoming = sample_delta(material, normal, outgoing, rand1f())
+                weight *=
+                    eval_delta(material, normal, outgoing, incoming) /
+                    sample_delta_pdf(material, normal, outgoing, incoming)
+            end
+
+            # update volume stack
+            if (
+                is_volumetric(scene, intersection) &&
+                dot(normal, outgoing) * dot(normal, incoming) < 0
+            )
+                if (length(volume_stack) == 0)
+                    material = eval_material(scene, intersection)
+                    push!(volume_stack, material)
+                else
+                    pop!(volume_stack)
+                end
+            end
+
+            # setup next iteration
+            ray = Ray3f(position, incoming)
+        else
+            # prepare shading point
+            outgoing = -ray.d
+            position = ray.o + ray.d * intersection.distance
+            vsdf = first(volume_stack)
+
+            # accumulate emission
+            # radiance += weight * eval_volemission(emission, outgoing)
+
+            # next direction
+            incoming = Vec3f(0, 0, 0)
+            if (rand1f() < 0.5f0)
+                incoming = sample_scattering(vsdf, outgoing, rand1f(), rand2f())
+            else
+                incoming =
+                    sample_lights(scene, lights, position, rand1f(), rand1f(), rand2f())
+            end
+            if (incoming == Vec3f(0, 0, 0))
+                break
+            end
+            weight *=
+                eval_scattering(vsdf, outgoing, incoming) / (
+                    0.5f0 * sample_scattering_pdf(vsdf, outgoing, incoming) +
+                    0.5f0 * sample_lights_pdf(scene, bvh, lights, position, incoming)
+                )
+
+            # setup next iteration
+            ray = Ray3f(position, incoming)
+        end
+
+        # check weight
+        if (weight == Vec3f(0, 0, 0) || !all(isfinite.(weight)))
+            break
+        end
+
+        # russian roulette
+        if (bounce > 3)
+            rr_prob = min(0.99f0, maximum(weight))
+            if (rand1f() >= rr_prob)
+                break
+            end
+            weight *= 1 / rr_prob
+        end
+    end
+
+    return (radiance, hit, hit_albedo, hit_normal)
+end
 
 function trace_naive(
     scene::SceneData,
