@@ -135,6 +135,12 @@ mutable struct Params
     end
 
     function Params(params)
+        sidx = indexin([params["sampler"]], SAMPLER_TYPES)
+        sampler = if sidx[1] == nothing
+            1
+        else
+            sidx[1]
+        end
         new(
             params["scene"],
             params["output"],
@@ -149,7 +155,7 @@ mutable struct Params
             params["highqualitybvh"],
             params["envhidden"],
             params["tentfilter"],
-            params["sampler"],
+            sampler,
             params["clamp"],
         )
     end
