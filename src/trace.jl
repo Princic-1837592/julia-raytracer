@@ -344,8 +344,8 @@ function trace_path(
                     )
             else
                 incoming = sample_delta(material, normal, outgoing, rand1f())
-                weight *=
-                    eval_delta(material, normal, outgoing, incoming) /
+                weight =
+                    weight .* eval_delta(material, normal, outgoing, incoming) /
                     sample_delta_pdf(material, normal, outgoing, incoming)
             end
 
