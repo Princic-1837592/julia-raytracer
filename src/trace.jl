@@ -1073,8 +1073,10 @@ function sample_lights_pdf(
                     emission_tex.height - 1,
                 )
                 prob =
-                    sample_discrete_pdf(light.elements_cdf, j * emission_tex.width + i) /
-                    last(light.elements_cdf)
+                    sample_discrete_pdf(
+                        light.elements_cdf,
+                        j * emission_tex.width + i + 1,
+                    ) / last(light.elements_cdf)
                 angle =
                     (2 * pif / emission_tex.width) *
                     (pif / emission_tex.height) *
