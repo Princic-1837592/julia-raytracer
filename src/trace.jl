@@ -233,7 +233,8 @@ function trace_path(
     radiance = Vec3f(0, 0, 0)
     weight = Vec3f(1, 1, 1)
     ray = ray_
-    volume_stack = Stack{MaterialPoint}()
+    volume_stack = Vector{MaterialPoint}(undef, params.bounces)
+    cur_volume = 0
     max_roughness = 0.0f0
     hit = false
     hit_albedo = Vec3f(0, 0, 0)
@@ -255,8 +256,8 @@ function trace_path(
 
         # handle transmission if inside a volume
         in_volume = false
-        if (length(volume_stack) != 0)
-            vsdf = first(volume_stack)
+        if (cur_volume != 0)
+            vsdf = volume_stack[cur_volume]
             distance = sample_transmittance(
                 vsdf.density,
                 intersection.distance,
@@ -354,11 +355,12 @@ function trace_path(
                 is_volumetric(scene, scene.instances[intersection.instance]) &&
                 dot(normal, outgoing) * dot(normal, incoming) < 0
             )
-                if (length(volume_stack) == 0)
+                if (cur_volume == 0)
                     material = eval_material(scene, intersection)
-                    push!(volume_stack, material)
+                    cur_volume += 1
+                    volume_stack[cur_volume] = material
                 else
-                    pop!(volume_stack)
+                    cur_volume -= 1
                 end
             end
 
@@ -368,7 +370,7 @@ function trace_path(
             # prepare shading point
             outgoing = -ray.d
             position = ray.o + ray.d * intersection.distance
-            vsdf = first(volume_stack)
+            vsdf = volume_stack[cur_volume]
 
             # accumulate emission
             # radiance += weight * eval_volemission(emission, outgoing)
