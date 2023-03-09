@@ -48,4 +48,33 @@ function sample_hemisphere_cos_pdf(normal::Vec3f, direction::Vec3f)::Float32
     (cosw <= 0) ? 0 : cosw / pif
 end
 
+sample_uniform(size::Int, r::Float32)::Int = clamp(trunc(Int, r * size), 1, size)
+
+sample_uniform_pdf(size::Int)::Float32 = 1 / size
+
+function sample_discrete(cdf::Vector{Float32}, r::Float32)::Int
+    r = clamp(r * last(cdf), 0.0f0, last(cdf) - 0.00001f0)
+    #todo
+    idx = upper_bound(cdf, r)
+    clamp(idx, 1, length(cdf))
+end
+
+function upper_bound(cdf::Vector{Float32}, r::Float32)::Int
+    idx = 0
+    for i in 1:length(cdf)
+        if cdf[i] > r
+            idx = i
+            break
+        end
+    end
+    idx
+end
+
+sample_discrete_pdf(cdf::Vector{Float32}, idx::Int)::Float32 =
+    if (idx == 1)
+        cdf[1]
+    else
+        cdf[idx] - cdf[idx - 1]
+    end
+
 end

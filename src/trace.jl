@@ -25,7 +25,12 @@ using ..Scene:
     refractive,
     subsurface,
     volumetric,
-    gltfpbr
+    gltfpbr,
+    invalid_id,
+    lookup_texture,
+    eval_position,
+    eval_element_normal,
+    is_volumetric
 using ..Shading:
     sample_matte,
     eval_matte,
@@ -36,12 +41,31 @@ using ..Shading:
     sample_glossy,
     eval_glossy,
     sample_glossy_pdf
-using ..Math: Vec2f, Vec3f, Vec4f, lerp, Vec2i, dot
-using ..Bvh: SceneBvh, intersect_scene_bvh
+using ..Math:
+    Vec2f,
+    Vec3f,
+    Vec4f,
+    lerp,
+    Vec2i,
+    dot,
+    pif,
+    inverse,
+    normalize,
+    transform_direction,
+    distance_squared
+using ..Bvh: SceneBvh, intersect_scene_bvh, intersect_instance_bvh
 using ..Image: make_image, ImageData
-using ..Geometry: Ray3f
-using ..Sampling: sample_disk, rand1f, rand2f
+using ..Geometry: Ray3f, triangle_area, quad_area
+using ..Sampling:
+    sample_disk,
+    rand1f,
+    rand2f,
+    sample_uniform,
+    sample_uniform_pdf,
+    sample_discrete,
+    sample_discrete_pdf
 using Printf: @printf
+using ..Cli: Params
 
 mutable struct TraceState
     width   :: Int
@@ -58,9 +82,95 @@ mutable struct TraceState
         new(width, height, samples, image, albedo, normal, hits, denoised)
 end
 
-function make_trace_lights(scene::SceneData, params) end
+mutable struct TraceLight
+    instance     :: Int
+    environment  :: Int
+    elements_cdf :: Vector{Float32}
 
-function make_trace_state(scene::SceneData, params)::TraceState
+    TraceLight() = new(0, 0, Float32[])
+end
+
+struct TraceLights
+    lights::Vector{TraceLight}
+
+    TraceLights() = new(TraceLight[])
+end
+
+function make_trace_lights(scene::SceneData, params::Params)::TraceLights
+    lights = TraceLights()
+
+    for handle in 1:length(scene.instances)
+        instance = scene.instances[handle]
+        material = scene.materials[instance.material]
+        if (material.emission == Vec3f(0, 0, 0))
+            continue
+        end
+        shape = scene.shapes[instance.shape]
+        if (length(shape.triangles) == 0 && length(shape.quads) == 0)
+            continue
+        end
+        light = TraceLight()
+        light.instance = handle
+        light.environment = invalid_id
+        if (length(shape.triangles) != 0)
+            light.elements_cdf = Vector{Float32}(undef, length(shape.triangles))
+            for idx in 1:length(light.elements_cdf)
+                t = shape.triangles[idx]
+                light.elements_cdf[idx] = triangle_area(
+                    shape.positions[t[1]],
+                    shape.positions[t[2]],
+                    shape.positions[t[3]],
+                )
+                if (idx != 1)
+                    light.elements_cdf[idx] += light.elements_cdf[idx - 1]
+                end
+            end
+        end
+        if (length(shape.quads) != 0)
+            light.elements_cdf = Vector{Float32}(undef, length(shape.quads))
+            for idx in 1:length(light.elements_cdf)
+                t = shape.quads[idx]
+                light.elements_cdf[idx] = quad_area(
+                    shape.positions[t[1]],
+                    shape.positions[t[2]],
+                    shape.positions[t[3]],
+                    shape.positions[t[4]],
+                )
+                if (idx != 1)
+                    light.elements_cdf[idx] += light.elements_cdf[idx - 1]
+                end
+            end
+        end
+        push!(lights.lights, light)
+    end
+    for handle in 1:length(scene.environments)
+        environment = scene.environments[handle]
+        if (environment.emission == Vec3f(0, 0, 0))
+            continue
+        end
+        light = TraceLight()
+        light.instance = invalid_id
+        light.environment = handle
+        if (environment.emission_tex != invalid_id)
+            texture = scene.textures[environment.emission_tex]
+            light.elements_cdf = Vector{Float32}(undef, texture.width * texture.height)
+            for idx in 1:length(light.elements_cdf)
+                ij = Vec2i((idx - 1) % texture.width, div((idx - 1), texture.width))
+                th = (ij[2] + 0.5f0) * pif / texture.height
+                value = lookup_texture(texture, ij[1], ij[2])
+                light.elements_cdf[idx] = maximum(value) * sin(th)
+                if (idx != 1)
+                    light.elements_cdf[idx] += light.elements_cdf[idx - 1]
+                end
+            end
+        end
+        push!(lights.lights, light)
+    end
+
+    return lights
+end
+
+function make_trace_state(scene::SceneData, params::Params)::TraceState
     camera = scene.cameras[params.camera]
     if camera.aspect >= 1
         width = params.resolution
@@ -86,7 +196,13 @@ function make_trace_state(scene::SceneData, params)::TraceState
     TraceState(width, height, samples, image, albedo, normal, hits, denoised)
 end
 
-function trace_samples(state::TraceState, scene::SceneData, bvh::SceneBvh, lights, params)
+function trace_samples(
+    state::TraceState,
+    scene::SceneData,
+    bvh::SceneBvh,
+    lights::TraceLights,
+    params::Params,
+)
     if state.samples >= params.samples
         return
     end
@@ -106,7 +222,13 @@ function trace_samples(state::TraceState, scene::SceneData, bvh::SceneBvh, light
     state.samples += 1
 end
 
-function trace_path(scene::SceneData, bvh::SceneBvh, lights, ray_::Ray3f, params)
+function trace_path(
+    scene::SceneData,
+    bvh::SceneBvh,
+    lights::TraceLights,
+    ray_::Ray3f,
+    params::Params,
+)
     # initialize
     radiance = Vec3f(0, 0, 0)
     weight = Vec3f(1, 1, 1)
@@ -126,7 +248,7 @@ function trace_path(scene::SceneData, bvh::SceneBvh, lights, ray_::Ray3f, params
         intersection = intersect_scene_bvh(bvh, scene, ray, false, bvh_stack, bvh_sub_stack)
         if (!intersection.hit)
             if (bounce > 0 || !params.envhidden)
-                radiance += weight * eval_environment(scene, ray.d)
+                radiance += weight .* eval_environment(scene, ray.d)
             end
             break
         end
@@ -215,8 +337,8 @@ function trace_path(scene::SceneData, bvh::SceneBvh, lights, ray_::Ray3f, params
                 if (incoming == Vec3f(0, 0, 0))
                     break
                 end
-                weight *=
-                    eval_bsdfcos(material, normal, outgoing, incoming) / (
+                weight =
+                    weight .* eval_bsdfcos(material, normal, outgoing, incoming) / (
                         0.5f0 * sample_bsdfcos_pdf(material, normal, outgoing, incoming) +
                         0.5f0 * sample_lights_pdf(scene, bvh, lights, position, incoming)
                     )
@@ -229,7 +351,7 @@ function trace_path(scene::SceneData, bvh::SceneBvh, lights, ray_::Ray3f, params
 
             # update volume stack
             if (
-                is_volumetric(scene, intersection) &&
+                is_volumetric(scene, scene.instances[intersection.instance]) &&
                 dot(normal, outgoing) * dot(normal, incoming) < 0
             )
                 if (length(volume_stack) == 0)
@@ -293,9 +415,9 @@ end
 function trace_naive(
     scene::SceneData,
     bvh::SceneBvh,
-    lights,
+    lights::TraceLights,
     ray_::Ray3f,
-    params,
+    params::Params,
 )::Tuple{Vec3f,Bool,Vec3f,Vec3f}
     radiance = Vec3f(0, 0, 0)
     weight = Vec3f(1, 1, 1)
@@ -454,7 +576,7 @@ function trace_sample(
     i,
     j,
     sample::Int,
-    params,
+    params::Params,
 )
     camera = scene.cameras[params.camera]
     idx = state.width * j + i + 1
@@ -849,6 +971,120 @@ function sample_delta_pdf(
     else
         0
     end
+end
+
+function sample_lights(
+    scene::SceneData,
+    lights::TraceLights,
+    position::Vec3f,
+    rl::Float32,
+    rel::Float32,
+    ruv::Vec2f,
+)::Vec3f
+    light_id = sample_uniform(length(lights.lights), rl)
+    light = lights.lights[light_id]
+    if (light.instance != invalid_id)
+        instance = scene.instances[light.instance]
+        shape = scene.shapes[instance.shape]
+        element = sample_discrete(light.elements_cdf, rel)
+        uv = (length(shape.triangles) != 0) ? sample_triangle(ruv) : ruv
+        lposition = eval_position(scene, instance, element, uv)
+        return normalize(lposition - position)
+    elseif (light.environment != invalid_id)
+        environment = scene.environments[light.environment]
+        if (environment.emission_tex != invalid_id)
+            emission_tex = scene.textures[environment.emission_tex]
+            idx = sample_discrete(light.elements_cdf, rel)
+            uv = Vec2f(
+                ((idx % emission_tex.width) + 0.5f0) / emission_tex.width,
+                ((idx / emission_tex.width) + 0.5f0) / emission_tex.height,
+            )
+            return transform_direction(
+                environment.frame,
+                Vec3f(
+                    cos(uv[1] * 2 * pif) * sin(uv[2] * pif),
+                    cos(uv[2] * pif),
+                    sin(uv[1] * 2 * pif) * sin(uv[2] * pif),
+                ),
+            )
+        else
+            return sample_sphere(ruv)
+        end
+    else
+        return Vec3f(0, 0, 0)
+    end
+end
+
+function sample_lights_pdf(
+    scene::SceneData,
+    bvh::SceneBvh,
+    lights::TraceLights,
+    position::Vec3f,
+    direction::Vec3f,
+)::Float32
+    pdf = 0.0f0
+    for light in lights.lights
+        if (light.instance != invalid_id)
+            instance = scene.instances[light.instance]
+            lpdf = 0.0f0
+            next_position = position
+            for bounce in 0:99
+                intersection = intersect_instance_bvh(
+                    bvh,
+                    scene,
+                    light.instance,
+                    Ray3f(next_position, direction),
+                )
+                if (!intersection.hit)
+                    break
+                end
+                lposition =
+                    eval_position(scene, instance, intersection.element, intersection.uv)
+                lnormal = eval_element_normal(scene, instance, intersection.element)
+                area = last(light.elements_cdf)
+                lpdf +=
+                    distance_squared(lposition, position) /
+                    (abs(dot(lnormal, direction)) * area)
+                next_position = lposition + direction * 0.001f0
+            end
+            pdf += lpdf
+        elseif (light.environment != invalid_id)
+            environment = scene.environments[light.environment]
+            if (environment.emission_tex != invalid_id)
+                emission_tex = scene.textures[environment.emission_tex]
+                wl = transform_direction(inverse(environment.frame), direction)
+                texcoord = Vec2f(
+                    atan(wl[3], wl[1]) / (2 * pif),
+                    acos(clamp(wl[2], -1.0f0, 1.0f0)) / pif,
+                )
+                if (texcoord[1] < 0)
+                    texcoord = Vec2f(texcoord[1] + 1, texcoord[2])
+                end
+                i = clamp(
+                    trunc(Int, texcoord[1] * emission_tex.width),
+                    0,
+                    emission_tex.width - 1,
+                )
+                j = clamp(
+                    trunc(Int, texcoord[2] * emission_tex.height),
+                    0,
+                    emission_tex.height - 1,
+                )
+                prob =
+                    sample_discrete_pdf(light.elements_cdf, j * emission_tex.width + i) /
+                    last(light.elements_cdf)
+                angle =
+                    (2 * pif / emission_tex.width) *
+                    (pif / emission_tex.height) *
+                    sin(pif * (j + 0.5f0) / emission_tex.height)
+                pdf += prob / angle
+            else
+                pdf += 1 / (4 * pif)
+            end
+        end
+    end
+    pdf *= sample_uniform_pdf(length(lights.lights))
+    pdf
 end
 
 end

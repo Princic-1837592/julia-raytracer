@@ -8,7 +8,15 @@ geometry:
 module Geometry
 
 using ..Math:
-    Vec3f, Frame3f, transform_point, transform_vector, cross, dot, Vec2f, normalize
+    Vec3f,
+    Frame3f,
+    transform_point,
+    transform_vector,
+    cross,
+    dot,
+    Vec2f,
+    normalize,
+    math_length
 using Printf: @printf
 
 struct Bbox3f
@@ -255,8 +263,14 @@ line_tangent(p1::Vec3f, p2::Vec3f) = normalize(p2 - p1)
 
 triangle_normal(p1::Vec3f, p2::Vec3f, p3::Vec3f) = normalize(cross(p2 - p1, p3 - p1))
 
+triangle_area(p0::Vec3f, p1::Vec3f, p2::Vec3f)::Float32 =
+    math_length(cross(p1 - p0, p2 - p0)) / 2
+
 quad_normal(p1::Vec3f, p2::Vec3f, p3::Vec3f, p4::Vec3f) =
     normalize(triangle_normal(p1, p2, p4) + triangle_normal(p3, p4, p2))
+
+quad_area(p0::Vec3f, p1::Vec3f, p2::Vec3f, p3::Vec3f)::Float32 =
+    triangle_area(p0, p1, p3) + triangle_area(p2, p3, p1)
 
 interpolate_line(p1, p2, u::Float32) = p1 * (1 - u) + p2 * u
 

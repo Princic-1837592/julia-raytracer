@@ -133,4 +133,8 @@ transform_direction(a::Mat3f, b::Vec3f) = normalize(transform_vector(a, b))
 
 reflect(w::Vec3f, n::Vec3f)::Vec3f = -w + 2 * dot(n, w) * n
 
+math_length(a::Vec3f) = sqrt(dot(a, a))
+
+distance_squared(a::Vec3f, b::Vec3f)::Float32 = dot(a - b, a - b)
+
 end

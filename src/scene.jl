@@ -779,7 +779,12 @@ function eval_texture(
     end
 end
 
-function lookup_texture(texture::TextureData, i::Int, j::Int, as_linear::Bool)::Vec4f
+function lookup_texture(
+    texture::TextureData,
+    i::Int,
+    j::Int,
+    as_linear::Bool = false,
+)::Vec4f
     color = Vec4f(0, 0, 0, 0)
     if (length(texture.pixelsf) != 0)
         color = texture.pixelsf[j * texture.width + i + 1]
@@ -863,5 +868,13 @@ is_delta(material::MaterialPoint)::Bool =
     (material.type == refractive && material.roughness == 0) ||
     (material.type == transparent && material.roughness == 0) ||
     (material.type == volumetric)
+
+is_volumetric(scene::SceneData, instance::InstanceData)::Bool =
+    is_volumetric(scene.materials[instance.material])
+
+is_volumetric(material::MaterialData)::Bool =
+    material.type == refractive ||
+    material.type == volumetric ||
+    material.type == subsurface
 
 end

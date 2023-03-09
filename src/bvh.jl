@@ -446,6 +446,35 @@ function intersect_shape_bvh(
     intersection
 end
 
+function intersect_instance_bvh(
+    sbvh::SceneBvh,
+    scene::SceneData,
+    instance_::Int,
+    ray::Ray3f,
+    find_any::Bool = false,
+)::SceneIntersection
+    instance = scene.instances[instance_]
+    inv_ray = transform_ray(inverse(instance.frame, true), ray)
+    bvh_sub_stack = Vector{Int32}(undef, 32)
+    intersection = intersect_shape_bvh(
+        sbvh.shapes[instance.shape],
+        scene.shapes[instance.shape],
+        inv_ray,
+        find_any,
+        bvh_sub_stack,
+    )
+    if (!intersection.hit)
+        return SceneIntersection()
+    end
+    SceneIntersection(
+        instance_,
+        intersection.element,
+        intersection.uv,
+        intersection.distance,
+        true,
+    )
+end
+
 function verify_bvh(bvh)::Bool
     function verify_tree(tree)::Bool
         total = 0
