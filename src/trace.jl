@@ -117,11 +117,13 @@ function trace_path(scene::SceneData, bvh::SceneBvh, lights, ray_::Ray3f, params
     hit_albedo = Vec3f(0, 0, 0)
     hit_normal = Vec3f(0, 0, 0)
     opbounce = 0
+    bvh_stack = Vector{Int}(undef, 32)
+    bvh_sub_stack = Vector{Int}(undef, 32)
 
     # trace  path
     for bounce in 0:(params.bounces - 1)
         # intersect next point
-        intersection = intersect_scene_bvh(bvh, scene, ray, false)
+        intersection = intersect_scene_bvh(bvh, scene, ray, false, bvh_stack, bvh_sub_stack)
         if (!intersection.hit)
             if (bounce > 0 || !params.envhidden)
                 radiance += weight * eval_environment(scene, ray.d)
@@ -302,9 +304,11 @@ function trace_naive(
     hit_albedo = Vec3f(0, 0, 0)
     hit_normal = Vec3f(0, 0, 0)
     opbounce = 0
+    bvh_stack = Vector{Int}(undef, 32)
+    bvh_sub_stack = Vector{Int}(undef, 32)
 
     for bounce in 0:(params.bounces - 1)
-        intersection = intersect_scene_bvh(bvh, scene, ray, false)
+        intersection = intersect_scene_bvh(bvh, scene, ray, false, bvh_stack, bvh_sub_stack)
         if !intersection.hit
             if bounce > 0 || !params.envhidden
                 radiance += weight .* eval_environment(scene, ray.d)
