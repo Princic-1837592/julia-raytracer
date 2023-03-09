@@ -244,6 +244,7 @@ function intersect_scene_bvh(
         return false
     end
     stack = Vector{Int}(undef, 32)
+    sub_stack = Vector{Int}(undef, 32)
     node_cur = 1
     stack[node_cur] = 1
     node_cur += 1
@@ -290,6 +291,7 @@ function intersect_scene_bvh(
                     scene.shapes[instance.shape],
                     inv_ray,
                     find_any,
+                    sub_stack,
                 )
                 if !sintersection.hit
                     continue
@@ -316,12 +318,13 @@ function intersect_shape_bvh(
     shape::ShapeData,
     ray::Ray3f,
     find_any::Bool,
+    stack::Vector{Int},
 )::ShapeIntersection
     bvh = sbvh.bvh
     if length(bvh.nodes) == 0
         return ShapeIntersection()
     end
-    stack = Vector{Int}(undef, 32)
+    #     stack = Vector{Int}(undef, 32)
     node_cur = 1
     stack[node_cur] = 1
     node_cur += 1
