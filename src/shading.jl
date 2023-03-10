@@ -705,7 +705,7 @@ end
 
 function sample_phasefunction(anisotropy::Float32, outgoing::Vec3f, rn::Vec2f)::Vec3f
     cos_theta = 0.0f0
-    if (abs(anisotropy) < 0.0001f0)
+    if (abs(anisotropy) < 0.001f0)
         cos_theta = 1 - 2 * rn[2]
     else
         square = (1 - anisotropy * anisotropy) / (1 + anisotropy - 2 * anisotropy * rn[2])
