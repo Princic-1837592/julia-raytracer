@@ -46,7 +46,7 @@ struct Ray3f
     Ray3f(ray::Ray3f, tmax::Float32) = new(ray.o, ray.d, ray.tmin, tmax)
 end
 
-mutable struct PrimIntersection
+struct PrimIntersection
     uv       :: Vec2f
     distance :: Float32
     hit      :: Bool
@@ -251,7 +251,7 @@ function intersect_quad(
     isec1 = intersect_triangle(ray, p1, p2, p4)
     isec2 = intersect_triangle(ray, p3, p4, p2)
     if (isec2.hit)
-        isec2.uv = 1 .- isec2.uv
+        isec2 = PrimIntersection(1 .- isec2.uv, isec2.distance, isec2.hit)
     end
     if isec1.distance < isec2.distance
         isec1
