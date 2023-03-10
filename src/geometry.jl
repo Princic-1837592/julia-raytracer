@@ -33,7 +33,7 @@ end
 
 const ray_eps::Float32 = 1e-4
 
-mutable struct Ray3f
+struct Ray3f
     o    :: Vec3f
     d    :: Vec3f
     tmin :: Float32
@@ -43,6 +43,7 @@ mutable struct Ray3f
     Ray3f(o::Vec3f, d::Vec3f) = new(o, d, ray_eps, typemax(Float32))
     Ray3f(o::Vec3f, d::Vec3f, tmin::Float32, tmax::Float32) = new(o, d, tmin, tmax)
     Ray3f(ray::Ray3f) = new(ray.o, ray.d, ray.tmin, ray.tmax)
+    Ray3f(ray::Ray3f, tmax::Float32) = new(ray.o, ray.d, ray.tmin, tmax)
 end
 
 mutable struct PrimIntersection

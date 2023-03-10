@@ -249,7 +249,6 @@ function intersect_scene_bvh(
     stack[node_cur] = 1
     node_cur += 1
     intersection = SceneIntersection()
-    #     ray = Ray3f(ray_)
     ray_dinv = Vec3f(1 / ray.d[1], 1 / ray.d[2], 1 / ray.d[3])
     ray_dsign = Vec3i(if ray.d[1] < 0
         1
@@ -303,7 +302,7 @@ function intersect_scene_bvh(
                     sintersection.distance,
                     true,
                 )
-                ray.tmax = sintersection.distance
+                ray = Ray3f(ray, sintersection.distance)
             end
         end
         if find_any && intersection.hit
@@ -328,7 +327,6 @@ function intersect_shape_bvh(
     stack[node_cur] = 1
     node_cur += 1
     intersection = ShapeIntersection()
-    #     ray = Ray3f(ray_)
     ray_dinv = Vec3f(1 / ray.d[1], 1 / ray.d[2], 1 / ray.d[3])
     ray_dsign = Vec3i(if ray.d[1] < 0
         1
@@ -374,7 +372,7 @@ function intersect_shape_bvh(
                     pintersection.distance,
                     true,
                 )
-                ray.tmax = pintersection.distance
+                ray = Ray3f(ray, pintersection.distance)
             end
         elseif length(shape.lines) > 0
             for i in (node.start):(node.start + node.num - 1)
@@ -395,7 +393,7 @@ function intersect_shape_bvh(
                     pintersection.distance,
                     true,
                 )
-                ray.tmax = pintersection.distance
+                ray = Ray3f(ray, pintersection.distance)
             end
         elseif length(shape.triangles) > 0
             for i in (node.start):(node.start + node.num - 1)
@@ -415,7 +413,7 @@ function intersect_shape_bvh(
                     pintersection.distance,
                     true,
                 )
-                ray.tmax = pintersection.distance
+                ray = Ray3f(ray, pintersection.distance)
             end
         elseif length(shape.quads) > 0
             for i in (node.start):(node.start + node.num - 1)
@@ -436,7 +434,7 @@ function intersect_shape_bvh(
                     pintersection.distance,
                     true,
                 )
-                ray.tmax = pintersection.distance
+                ray = Ray3f(ray, pintersection.distance)
             end
         end
         if find_any && intersection.hit
