@@ -197,7 +197,7 @@ function split_middle(
     end
     csize = cbbox.max - cbbox.min
     if csize == Vec3f(0, 0, 0)
-        return div((left + right + 1), 2), 0
+        return div((left + right + 1), 2), 1
     end
     axis = 1
     if csize[1] >= csize[2] && csize[1] >= csize[3]
