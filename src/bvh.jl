@@ -153,15 +153,15 @@ function make_bvh(bboxes::Vector{Bbox3f}, high_quality::Bool)::BvhTree
         node_id, left, right = pop!(stack)
         node = bvh.nodes[node_id]
         for i in left:right
-            bvh.nodes[node_id] = BvhNode(
+            node = BvhNode(
                 merge_bbox3f(node.bbox, bboxes[bvh.primitives[i]]),
                 node.start,
                 node.num,
                 node.axis,
                 node.internal,
             )
-            node = bvh.nodes[node_id]
         end
+        bvh.nodes[node_id] = node
         if right - left + 1 > BVH_MAX_PRIMS
             mid, axis = if high_quality
                 #todo method does not exist yet
