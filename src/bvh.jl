@@ -48,10 +48,10 @@ struct BvhTree
     BvhTree() = new(BvhNode[], Int[])
 end
 
-mutable struct ShapeBvh
+struct ShapeBvh
     bvh::BvhTree
 
-    ShapeBvh() = new(BvhTree())
+    ShapeBvh(bvh::BvhTree) = new(bvh)
 end
 
 struct SceneBvh
@@ -86,7 +86,6 @@ function make_scene_bvh(scene::SceneData, high_quality::Bool, no_parallel::Bool)
 end
 
 function make_shape_bvh(shape::ShapeData, high_quality::Bool)::ShapeBvh
-    sbvh = ShapeBvh()
     bboxes = if length(shape.points) > 0
         result = Vector{Bbox3f}(undef, length(shape.points))
         for i in 1:length(shape.points)
@@ -131,8 +130,7 @@ function make_shape_bvh(shape::ShapeData, high_quality::Bool)::ShapeBvh
         result
     end
 
-    sbvh.bvh = make_bvh(bboxes, high_quality)
-    sbvh
+    ShapeBvh(make_bvh(bboxes, high_quality))
 end
 
 function make_bvh(bboxes::Vector{Bbox3f}, high_quality::Bool)::BvhTree
