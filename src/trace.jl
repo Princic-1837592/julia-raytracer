@@ -73,6 +73,7 @@ using ..Sampling:
     sample_uniform_pdf,
     sample_discrete,
     sample_discrete_pdf
+using ..Shape: SceneIntersection
 using Printf: @printf
 using ..Cli: Params
 
@@ -306,7 +307,13 @@ function trace_path(
                 weight .* eval_transmittance(vsdf.density, distance) /
                 sample_transmittance_pdf(vsdf.density, distance, intersection.distance)
             in_volume = distance < intersection.distance
-            intersection.distance = distance
+            intersection = SceneIntersection(
+                intersection.instance,
+                intersection.element,
+                intersection.uv,
+                distance,
+                intersection.hit,
+            )
         end
 
         # switch between surface and volume
