@@ -47,6 +47,9 @@ using ..Shading:
     sample_phasefunction,
     eval_phasefunction,
     sample_phasefunction_pdf,
+    sample_transparent,
+    eval_transparent,
+    sample_transparent_pdf,
     sample_glossy,
     eval_glossy,
     sample_glossy_pdf
@@ -355,7 +358,7 @@ function trace_path(
                     break
                 end
                 opbounce += 1
-                ray = Ray3f(position + ray.d * 1e-2, ray.d)
+                ray = Ray3f(position + ray.d * 0.01f0, ray.d)
                 bounce -= 1
                 continue
             end

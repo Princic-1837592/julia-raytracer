@@ -473,7 +473,7 @@ function eval_refractive(
         Vec3f(1, 1, 1) * F * D * G /
         abs(4 * dot(normal, outgoing) * dot(normal, incoming)) * abs(dot(normal, incoming))
     else
-        halfway = -normalize(rel_ior * incoming + outgoing) * (entering ? 1.0f : -1.0f)
+        halfway = -normalize(rel_ior * incoming + outgoing) * (entering ? 1.0f0 : -1.0f0)
         F = fresnel_dielectric(rel_ior, halfway, outgoing)
         D = microfacet_distribution(roughness, up_normal, halfway)
         G = microfacet_shadowing(roughness, up_normal, halfway, outgoing, incoming)
@@ -485,7 +485,7 @@ function eval_refractive(
         ) *
         (1 - F) *
         D *
-        G / pow(rel_ior * dot(halfway, incoming) + dot(halfway, outgoing), 2.0f) *
+        G / ((rel_ior * dot(halfway, incoming) + dot(halfway, outgoing))^2.0f0) *
         abs(dot(normal, incoming))
     end
 end
@@ -536,13 +536,13 @@ function sample_refractive_pdf(
         #  sample_microfacet_pdf(roughness, up_normal, halfway, outgoing) /
         (4 * abs(dot(outgoing, halfway)))
     else
-        halfway = -normalize(rel_ior * incoming + outgoing) * (entering ? 1.0f : -1.0f)
+        halfway = -normalize(rel_ior * incoming + outgoing) * (entering ? 1.0f0 : -1.0f0)
         # [Walter 2007] equation 17
         (1 - fresnel_dielectric(rel_ior, halfway, outgoing)) *
         sample_microfacet_pdf(roughness, up_normal, halfway) *
         #  sample_microfacet_pdf(roughness, up_normal, halfway, outgoing) /
         abs(dot(halfway, incoming)) /  # here we use incoming as from pbrt
-        pow(rel_ior * dot(halfway, incoming) + dot(halfway, outgoing), 2.0f)
+        ((rel_ior * dot(halfway, incoming) + dot(halfway, outgoing))^2.0f0)
     end
 end
 
@@ -599,7 +599,7 @@ function sample_refractive_pdf(
     outgoing::Vec3f,
     incoming::Vec3f,
 )::Float32
-    if (abs(ior - 1) < 1e-3)
+    if (abs(ior - 1) < 0.001f0)
         return if dot(normal, incoming) * dot(normal, outgoing) < 0
             1.0f0
         else
