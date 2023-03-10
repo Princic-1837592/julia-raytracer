@@ -231,7 +231,7 @@ struct MaterialData
     end
 end
 
-mutable struct MaterialPoint
+struct MaterialPoint
     type         :: MaterialType
     emission     :: Vec3f
     color        :: Vec3f
@@ -582,38 +582,49 @@ function eval_material(
     roughness_tex = eval_texture(scene, material.roughness_tex, texcoord, false)
     scattering_tex = eval_texture(scene, material.scattering_tex, texcoord, true)
 
-    point = MaterialPoint()
-    point.type = material.type
-    point.emission = material.emission .* Vec3f(emission_tex)
-    point.color = material.color .* Vec3f(color_tex) .* Vec3f(color_shp)
-    point.opacity = material.opacity * color_tex.w * color_shp.w
-    point.metallic = material.metallic * roughness_tex.z
-    point.roughness = material.roughness * roughness_tex.y
-    point.roughness = point.roughness * point.roughness
-    point.ior = material.ior
-    point.scattering = material.scattering .* Vec3f(scattering_tex)
-    point.scanisotropy = material.scanisotropy
-    point.trdepth = material.trdepth
+    type = material.type
+    emission = material.emission .* Vec3f(emission_tex)
+    color = material.color .* Vec3f(color_tex) .* Vec3f(color_shp)
+    opacity = material.opacity * color_tex.w * color_shp.w
+    metallic = material.metallic * roughness_tex.z
+    roughness = material.roughness * roughness_tex.y
+    roughness = roughness * roughness
+    ior = material.ior
+    scattering = material.scattering .* Vec3f(scattering_tex)
+    scanisotropy = material.scanisotropy
+    trdepth = material.trdepth
 
     if (
         material.type == refractive ||
         material.type == volumetric ||
         material.type == subsurface
     )
-        point.density = -log.(clamp.(point.color, 0.0001f0, 1.0f0)) / point.trdepth
+        density = -log.(clamp.(color, 0.0001f0, 1.0f0)) / trdepth
     else
-        point.density = Vec3f(0, 0, 0)
+        density = Vec3f(0, 0, 0)
     end
 
-    if (point.type == matte || point.type == gltfpbr || point.type == glossy)
-        point.roughness = clamp(point.roughness, min_roughness, 1.0f0)
+    if (type == matte || type == gltfpbr || type == glossy)
+        roughness = clamp(roughness, min_roughness, 1.0f0)
     elseif (material.type == volumetric)
-        point.roughness = 0
-    elseif (point.roughness < min_roughness)
-        point.roughness = 0
+        roughness = 0.0f0
+    elseif (roughness < min_roughness)
+        roughness = 0.0f0
     end
 
-    return point
+    return MaterialPoint(
+        type,
+        emission,
+        color,
+        opacity,
+        roughness,
+        metallic,
+        ior,
+        density,
+        scattering,
+        scanisotropy,
+        trdepth,
+    )
 end
 
 function eval_texture(
