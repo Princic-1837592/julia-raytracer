@@ -476,7 +476,7 @@ function intersect_instance_bvh(
     )
 end
 
-function verify_bvh(bvh)::Bool
+function verify_bvh(bvh::SceneBvh)::Bool
     function verify_tree(tree)::Bool
         total = 0
         for node in tree.nodes
@@ -548,6 +548,19 @@ function verify_bvh(bvh)::Bool
     end
     for shape in bvh.shapes
         if !verify_tree(shape.bvh)
+            return false
+        end
+        for node in shape.bvh.nodes
+            if node.internal && node.axis < 1
+                dump(node)
+                println("bad axis")
+                return false
+            end
+        end
+    end
+    for node in bvh.bvh.nodes
+        if node.internal && node.axis < 1
+            println("bad axis")
             return false
         end
     end
