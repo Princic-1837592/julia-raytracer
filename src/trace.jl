@@ -380,7 +380,14 @@ function trace_path(
                 weight =
                     weight .* eval_bsdfcos(material, normal, outgoing, incoming) / (
                         0.5f0 * sample_bsdfcos_pdf(material, normal, outgoing, incoming) +
-                        0.5f0 * sample_lights_pdf(scene, bvh, lights, position, incoming)
+                        0.5f0 * sample_lights_pdf(
+                            scene,
+                            bvh,
+                            lights,
+                            position,
+                            incoming,
+                            bvh_sub_stack,
+                        )
                     )
             else
                 incoming = sample_delta(material, normal, outgoing, rand1f())
@@ -433,7 +440,14 @@ function trace_path(
             weight =
                 weight .* eval_scattering(vsdf, outgoing, incoming) / (
                     0.5f0 * sample_scattering_pdf(vsdf, outgoing, incoming) +
-                    0.5f0 * sample_lights_pdf(scene, bvh, lights, position, incoming)
+                    0.5f0 * sample_lights_pdf(
+                        scene,
+                        bvh,
+                        lights,
+                        position,
+                        incoming,
+                        bvh_sub_stack,
+                    )
                 )
 
             # setup next iteration
@@ -1069,6 +1083,7 @@ function sample_lights_pdf(
     lights::TraceLights,
     position::Vec3f,
     direction::Vec3f,
+    bvh_sub_stack::Vector{Int32},
 )::Float32
     pdf = 0.0f0
     for light in lights.lights
@@ -1082,6 +1097,7 @@ function sample_lights_pdf(
                     scene,
                     light.instance,
                     Ray3f(next_position, direction),
+                    bvh_sub_stack,
                 )
                 if (!intersection.hit)
                     break

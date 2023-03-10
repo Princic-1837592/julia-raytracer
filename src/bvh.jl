@@ -451,17 +451,17 @@ function intersect_instance_bvh(
     scene::SceneData,
     instance_::Int,
     ray::Ray3f,
+    sub_stack::Vector{Int32},
     find_any::Bool = false,
 )::SceneIntersection
     instance = scene.instances[instance_]
     inv_ray = transform_ray(inverse(instance.frame, true), ray)
-    bvh_sub_stack = Vector{Int32}(undef, 32)
     intersection = intersect_shape_bvh(
         sbvh.shapes[instance.shape],
         scene.shapes[instance.shape],
         inv_ray,
         find_any,
-        bvh_sub_stack,
+        sub_stack,
     )
     if (!intersection.hit)
         return SceneIntersection()
