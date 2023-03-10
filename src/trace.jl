@@ -91,12 +91,13 @@ mutable struct TraceState
         new(width, height, samples, image, albedo, normal, hits, denoised)
 end
 
-mutable struct TraceLight
+struct TraceLight
     instance     :: Int
     environment  :: Int
     elements_cdf :: Vector{Float32}
 
-    TraceLight() = new(0, 0, Float32[])
+    TraceLight(instance::Int, environment::Int, elements_cdf::Vector{Float32}) =
+        new(instance, environment, elements_cdf)
 end
 
 struct TraceLights
@@ -118,62 +119,60 @@ function make_trace_lights(scene::SceneData, params::Params)::TraceLights
         if (length(shape.triangles) == 0 && length(shape.quads) == 0)
             continue
         end
-        light = TraceLight()
-        light.instance = handle
-        light.environment = invalid_id
+        l_instance = handle
+        l_environment = invalid_id
         if (length(shape.triangles) != 0)
-            light.elements_cdf = Vector{Float32}(undef, length(shape.triangles))
-            for idx in 1:length(light.elements_cdf)
+            l_elements_cdf = Vector{Float32}(undef, length(shape.triangles))
+            for idx in 1:length(l_elements_cdf)
                 t = shape.triangles[idx]
-                light.elements_cdf[idx] = triangle_area(
+                l_elements_cdf[idx] = triangle_area(
                     shape.positions[t[1]],
                     shape.positions[t[2]],
                     shape.positions[t[3]],
                 )
                 if (idx != 1)
-                    light.elements_cdf[idx] += light.elements_cdf[idx - 1]
+                    l_elements_cdf[idx] += l_elements_cdf[idx - 1]
                 end
             end
         end
         if (length(shape.quads) != 0)
-            light.elements_cdf = Vector{Float32}(undef, length(shape.quads))
-            for idx in 1:length(light.elements_cdf)
+            l_elements_cdf = Vector{Float32}(undef, length(shape.quads))
+            for idx in 1:length(l_elements_cdf)
                 t = shape.quads[idx]
-                light.elements_cdf[idx] = quad_area(
+                l_elements_cdf[idx] = quad_area(
                     shape.positions[t[1]],
                     shape.positions[t[2]],
                     shape.positions[t[3]],
                     shape.positions[t[4]],
                 )
                 if (idx != 1)
-                    light.elements_cdf[idx] += light.elements_cdf[idx - 1]
+                    l_elements_cdf[idx] += l_elements_cdf[idx - 1]
                 end
             end
         end
-        push!(lights.lights, light)
+        push!(lights.lights, TraceLight(l_instance, l_environment, l_elements_cdf))
     end
     for handle in 1:length(scene.environments)
         environment = scene.environments[handle]
         if (environment.emission == Vec3f(0, 0, 0))
             continue
         end
-        light = TraceLight()
-        light.instance = invalid_id
-        light.environment = handle
+        l_instance = invalid_id
+        l_environment = handle
         if (environment.emission_tex != invalid_id)
             texture = scene.textures[environment.emission_tex]
-            light.elements_cdf = Vector{Float32}(undef, texture.width * texture.height)
-            for idx in 1:length(light.elements_cdf)
+            l_elements_cdf = Vector{Float32}(undef, texture.width * texture.height)
+            for idx in 1:length(l_elements_cdf)
                 ij = Vec2i((idx - 1) % texture.width, div((idx - 1), texture.width))
                 th = (ij[2] + 0.5f0) * pif / texture.height
                 value = lookup_texture(texture, ij[1], ij[2])
-                light.elements_cdf[idx] = maximum(value) * sin(th)
+                l_elements_cdf[idx] = maximum(value) * sin(th)
                 if (idx != 1)
-                    light.elements_cdf[idx] += light.elements_cdf[idx - 1]
+                    l_elements_cdf[idx] += l_elements_cdf[idx - 1]
                 end
             end
         end
-        push!(lights.lights, light)
+        push!(lights.lights, TraceLight(l_instance, l_environment, l_elements_cdf))
     end
 
     return lights
