@@ -31,7 +31,7 @@ using Printf: @printf
 
 const BVH_MAX_PRIMS = 4
 
-mutable struct BvhNode
+struct BvhNode
     bbox     :: Bbox3f
     start    :: Int
     num      :: Int16
@@ -39,6 +39,8 @@ mutable struct BvhNode
     internal :: Bool
 
     BvhNode() = new(Bbox3f(), 0, 0, 1, false)
+    BvhNode(bbox::Bbox3f, start::Int, num, axis::Int8, internal::Bool) =
+        new(bbox, start, num, axis, internal)
 end
 
 struct BvhTree
@@ -151,7 +153,14 @@ function make_bvh(bboxes::Vector{Bbox3f}, high_quality::Bool)::BvhTree
         node_id, left, right = pop!(stack)
         node = bvh.nodes[node_id]
         for i in left:right
-            node.bbox = merge_bbox3f(node.bbox, bboxes[bvh.primitives[i]])
+            bvh.nodes[node_id] = BvhNode(
+                merge_bbox3f(node.bbox, bboxes[bvh.primitives[i]]),
+                node.start,
+                node.num,
+                node.axis,
+                node.internal,
+            )
+            node = bvh.nodes[node_id]
         end
         if right - left + 1 > BVH_MAX_PRIMS
             mid, axis = if high_quality
@@ -161,18 +170,15 @@ function make_bvh(bboxes::Vector{Bbox3f}, high_quality::Bool)::BvhTree
             else
                 split_middle(bvh.primitives, bboxes, centers, left, right)
             end
-            node.internal = true
-            node.axis = axis
-            node.num = 2
-            node.start = length(bvh.nodes) + 1
+            start = length(bvh.nodes) + 1
+            bvh.nodes[node_id] = BvhNode(node.bbox, start, 2, axis, true)
             push!(bvh.nodes, BvhNode())
             push!(bvh.nodes, BvhNode())
-            push!(stack, Vec3i(node.start, left, mid))
-            push!(stack, Vec3i(node.start + 1, mid + 1, right))
+            push!(stack, Vec3i(start, left, mid))
+            push!(stack, Vec3i(start + 1, mid + 1, right))
         else
-            node.internal = false
-            node.start = left
-            node.num = right - left + 1
+            bvh.nodes[node_id] =
+                BvhNode(node.bbox, left, right - left + 1, node.axis, false)
         end
     end
     bvh
