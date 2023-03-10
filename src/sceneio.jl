@@ -65,13 +65,11 @@ function load_scene(filename::String, no_parallel::Bool)::SceneData
         resize!(scene.shapes, length(shapes))
         if no_parallel
             for i in 1:length(shapes)
-                scene.shapes[i] = ShapeData()
-                load_shape(joinpath(dir, shapes[i]["uri"]), scene.shapes[i])
+                scene.shapes[i] = load_shape(joinpath(dir, shapes[i]["uri"]))
             end
         else
             Threads.@threads for i in 1:length(shapes)
-                scene.shapes[i] = ShapeData()
-                load_shape(joinpath(dir, shapes[i]["uri"]), scene.shapes[i])
+                scene.shapes[i] = load_shape(joinpath(dir, shapes[i]["uri"]))
             end
         end
     end

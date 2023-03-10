@@ -10,7 +10,7 @@ module Shape
 using PlyIO: load_ply, ArrayProperty, ListProperty, Ply
 using ..Math: Vec2i, Vec3f, Vec4f, Vec3i, Vec4i, Vec2f
 
-mutable struct ShapeData
+struct ShapeData
     points    :: Vector{Int}
     lines     :: Vector{Vec2i}
     triangles :: Vector{Vec3i}
@@ -22,7 +22,29 @@ mutable struct ShapeData
     radius    :: Vector{Float32}
     tangents  :: Vector{Vec4f}
 
-    ShapeData() = new()
+    ShapeData(
+        points::Vector{Int},
+        lines::Vector{Vec2i},
+        triangles::Vector{Vec3i},
+        quads::Vector{Vec4i},
+        positions::Vector{Vec3f},
+        normals::Vector{Vec3f},
+        texcoords::Vector{Vec2f},
+        colors::Vector{Vec4f},
+        radius::Vector{Float32},
+        tangents::Vector{Vec4f},
+    ) = new(
+        points,
+        lines,
+        triangles,
+        quads,
+        positions,
+        normals,
+        texcoords,
+        colors,
+        radius,
+        tangents,
+    )
 end
 
 struct ShapeIntersection
@@ -53,40 +75,53 @@ mutable struct SceneIntersection
     ) = new(instance, element, uv, distance, hit)
 end
 
-function load_shape(path::String, shape::ShapeData)::Bool
+function load_shape(path::String)::ShapeData
     if lowercase(splitext(path)[2]) != ".ply"
         return false
     end
     ply = load_ply(path)
-    shape.positions = Vector{Vec3f}(undef, 0)
-    result = get_vec3f_array(ply, "vertex", ["x", "y", "z"], shape.positions)
-    shape.normals = Vector{Vec3f}(undef, 0)
-    result = get_vec3f_array(ply, "vertex", ["nx", "ny", "nz"], shape.normals)
-    shape.texcoords = Vector{Vec2f}(undef, 0)
-    result = get_tex_coords(ply, true, shape.texcoords)
+    positions = Vector{Vec3f}(undef, 0)
+    result = get_vec3f_array(ply, "vertex", ["x", "y", "z"], positions)
+    normals = Vector{Vec3f}(undef, 0)
+    result = get_vec3f_array(ply, "vertex", ["nx", "ny", "nz"], normals)
+    texcoords = Vector{Vec2f}(undef, 0)
+    result = get_tex_coords(ply, true, texcoords)
     #todo check in case there are more than 0
-    shape.colors = Vector{Vec4f}(undef, 0)
-    result = get_colors(ply, shape.colors)
-    shape.radius = Vector{Float32}(undef, 0)
-    result = get_f_array(ply, "vertex", "radius", shape.radius)
-    shape.triangles = Vector{Vec3i}(undef, 0)
-    shape.quads = Vector{Vec4i}(undef, 0)
-    result = get_faces(ply, "face", "vertex_indices", shape.triangles, shape.quads)
-    shape.lines = Vector{Vec2i}(undef, 0)
-    result = get_lines(ply, "line", "vertex_indices", shape.lines)
-    shape.points = Vector{Int}(undef, 0)
-    result = get_list_values(ply, "point", "vertex_indices", shape.points)
+    colors = Vector{Vec4f}(undef, 0)
+    result = get_colors(ply, colors)
+    radius = Vector{Float32}(undef, 0)
+    result = get_f_array(ply, "vertex", "radius", radius)
+    triangles = Vector{Vec3i}(undef, 0)
+    quads = Vector{Vec4i}(undef, 0)
+    result = get_faces(ply, "face", "vertex_indices", triangles, quads)
+    lines = Vector{Vec2i}(undef, 0)
+    result = get_lines(ply, "line", "vertex_indices", lines)
+    points = Vector{Int}(undef, 0)
+    result = get_list_values(ply, "point", "vertex_indices", points)
     #todo-check if correct. used to index @bvh:78, maybe increasing is needed here
-    for collection in [shape.points, shape.lines, shape.triangles, shape.quads]
+    for collection in [points, lines, triangles, quads]
         for i in 1:length(collection)
             collection[i] = collection[i] .+ 1
         end
     end
 
-    return length(shape.points) != 0 ||
-           length(shape.lines) != 0 ||
-           length(shape.triangles) != 0 ||
-           length(shape.quads) != 0
+    return ShapeData(
+        points,
+        lines,
+        triangles,
+        quads,
+        positions,
+        normals,
+        texcoords,
+        colors,
+        radius,
+        Vector{Vec4f}(undef, 0),
+    )
+
+    #     return length(shape.points) != 0 ||
+    #            length(shape.lines) != 0 ||
+    #            length(shape.triangles) != 0 ||
+    #            length(shape.quads) != 0
 end
 
 function get_vec4f_array(
