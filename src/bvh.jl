@@ -54,36 +54,35 @@ mutable struct ShapeBvh
     ShapeBvh() = new(BvhTree())
 end
 
-mutable struct SceneBvh
+struct SceneBvh
     bvh    :: BvhTree
     shapes :: Vector{ShapeBvh}
 
-    SceneBvh() = new(BvhTree(), ShapeBvh[])
+    SceneBvh(bvh::BvhTree, shapes::Vector{ShapeBvh}) = new(bvh, shapes)
 end
 
 function make_scene_bvh(scene::SceneData, high_quality::Bool, no_parallel::Bool)::SceneBvh
-    sbvh = SceneBvh()
-    resize!(sbvh.shapes, length(scene.shapes))
+    sbvh_shapes = Vector{ShapeBvh}(undef, length(scene.shapes))
     if no_parallel
         for i in 1:length(scene.shapes)
-            sbvh.shapes[i] = make_shape_bvh(scene.shapes[i], high_quality)
+            sbvh_shapes[i] = make_shape_bvh(scene.shapes[i], high_quality)
         end
     else
         Threads.@threads for i in 1:length(scene.shapes)
-            sbvh.shapes[i] = make_shape_bvh(scene.shapes[i], high_quality)
+            sbvh_shapes[i] = make_shape_bvh(scene.shapes[i], high_quality)
         end
     end
     bboxes = Vector{Bbox3f}(undef, length(scene.instances))
     for i in 1:length(bboxes)
         instance = scene.instances[i]
-        bboxes[i] = if length(sbvh.shapes[instance.shape].bvh.nodes) == 0
+        bboxes[i] = if length(sbvh_shapes[instance.shape].bvh.nodes) == 0
             Bbox3f()
         else
-            transform_bbox(instance.frame, sbvh.shapes[instance.shape].bvh.nodes[1].bbox)
+            transform_bbox(instance.frame, sbvh_shapes[instance.shape].bvh.nodes[1].bbox)
         end
     end
-    sbvh.bvh = make_bvh(bboxes, high_quality)
-    sbvh
+    sbvh_bvh = make_bvh(bboxes, high_quality)
+    SceneBvh(sbvh_bvh, sbvh_shapes)
 end
 
 function make_shape_bvh(shape::ShapeData, high_quality::Bool)::ShapeBvh
