@@ -94,26 +94,35 @@ struct EnvironmentData
     end
 end
 
-mutable struct TextureData
+struct TextureData
     width   :: Int
     height  :: Int
     linear  :: Bool
     pixelsf :: Vector{Vec4f}
     pixelsb :: Vector{Vec4b}
 
-    TextureData() = new(0, 0, false, Vector{Vec4f}(), Vector{Vec4b}())
+    TextureData() = new(0, 0, false, Vector{Vec4f}(undef, 0), Vector{Vec4b}(undef, 0))
+
+    TextureData(
+        width::Int,
+        height::Int,
+        linear::Bool,
+        pixelsf::Vector{Vec4f},
+        pixelsb::Vector{Vec4b},
+    ) = new(width, height, linear, pixelsf, pixelsb)
 end
 
-function load_texture(path::String, texture::TextureData)::Bool
-    extension = lowercase(splitext(path)[2])
-    if extension == ".hdr"
+function load_texture(path::String)::TextureData
+    ext = lowercase(splitext(path)[2])
+    if ext == ".hdr"
         #todo fix wrong values
         img = load(path)
-        texture.height, texture.width = size(img)
-        texture.linear = true
-        texture.pixelsf = Vector{Vec4f}(undef, length(img))
+        height, width = size(img)
+        linear = true
+        pixelsf = Vector{Vec4f}(undef, length(img))
+        pixelsb = Vector{Vec4b}(undef, 0)
         for i in 1:length(img)
-            texture.pixelsf[i] = Vec4f(img[i])
+            pixelsf[i] = Vec4f(img[i])
         end
         #         for i in 1:500:length(texture.pixelsf)
         #             @printf(
@@ -141,20 +150,19 @@ function load_texture(path::String, texture::TextureData)::Bool
         #                 texture.pixelsf[i + 2][4]
         #             )
         #         end
-    elseif extension == ".png"
+    elseif ext == ".png"
         img = load(path)
-        texture.height, texture.width = size(img)
-        texture.linear = false
-        texture.pixelsb = Vector{Vec4b}(undef, length(img))
+        height, width = size(img)
+        linear = false
+        pixelsb = Vector{Vec4b}(undef, length(img))
+        pixelsf = Vector{Vec4f}(undef, 0)
         for i in 1:length(img)
-            texture.pixelsb[i] =
-                Vec4b(img[div((i - 1), texture.width) + 1, ((i - 1) % texture.width) + 1])
+            pixelsb[i] = Vec4b(img[div((i - 1), width) + 1, ((i - 1) % width) + 1])
         end
     else
-        println("unknown texture format: ", extension)
-        return false
+        error("unknown texture format: $ext")
     end
-    true
+    TextureData(width, height, linear, pixelsf, pixelsb)
 end
 
 @enum MaterialType begin

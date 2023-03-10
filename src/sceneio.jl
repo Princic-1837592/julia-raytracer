@@ -41,13 +41,11 @@ function load_scene(filename::String, no_parallel::Bool)::SceneData
         resize!(scene.textures, length(textures))
         if no_parallel
             for i in 1:length(textures)
-                scene.textures[i] = TextureData()
-                load_texture(joinpath(dir, textures[i]["uri"]), scene.textures[i])
+                scene.textures[i] = load_texture(joinpath(dir, textures[i]["uri"]))
             end
         else
             Threads.@threads for i in 1:length(textures)
-                scene.textures[i] = TextureData()
-                load_texture(joinpath(dir, textures[i]["uri"]), scene.textures[i])
+                scene.textures[i] = load_texture(joinpath(dir, textures[i]["uri"]))
             end
         end
     end
