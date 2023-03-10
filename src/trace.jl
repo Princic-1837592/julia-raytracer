@@ -216,15 +216,45 @@ function trace_samples(
         return
     end
     if params.noparallel
+        bvh_stack = Vector{Int32}(undef, 32)
+        bvh_sub_stack = Vector{Int32}(undef, 32)
         for j in 0:(state.height - 1)
             for i in 0:(state.width - 1)
-                trace_sample(state, scene, bvh, lights, i, j, state.samples, params)
+                trace_sample(
+                    state,
+                    scene,
+                    bvh,
+                    lights,
+                    i,
+                    j,
+                    state.samples,
+                    params,
+                    bvh_stack,
+                    bvh_sub_stack,
+                )
             end
         end
     else
+        bvh_stacks = Vector{Vector{Int32}}(undef, Threads.nthreads())
+        bvh_sub_stacks = Vector{Vector{Int32}}(undef, Threads.nthreads())
+        for tid in 1:Threads.nthreads()
+            bvh_stacks[tid] = Vector{Int32}(undef, 32)
+            bvh_sub_stacks[tid] = Vector{Int32}(undef, 32)
+        end
         Threads.@threads for j in 0:(state.height - 1)
             Threads.@threads for i in 0:(state.width - 1)
-                trace_sample(state, scene, bvh, lights, i, j, state.samples, params)
+                trace_sample(
+                    state,
+                    scene,
+                    bvh,
+                    lights,
+                    i,
+                    j,
+                    state.samples,
+                    params,
+                    bvh_stacks[Threads.threadid()],
+                    bvh_sub_stacks[Threads.threadid()],
+                )
             end
         end
     end
@@ -237,6 +267,8 @@ function trace_path(
     lights::TraceLights,
     ray_::Ray3f,
     params::Params,
+    bvh_stack::Vector{Int32},
+    bvh_sub_stack::Vector{Int32},
 )
     # initialize
     radiance = Vec3f(0, 0, 0)
@@ -249,8 +281,6 @@ function trace_path(
     hit_albedo = Vec3f(0, 0, 0)
     hit_normal = Vec3f(0, 0, 0)
     opbounce = 0
-    bvh_stack = Vector{Int32}(undef, 32)
-    bvh_sub_stack = Vector{Int32}(undef, 32)
 
     # trace  path
     for bounce in 0:(params.bounces - 1)
@@ -434,6 +464,8 @@ function trace_naive(
     lights::TraceLights,
     ray_::Ray3f,
     params::Params,
+    bvh_stack::Vector{Int32},
+    bvh_sub_stack::Vector{Int32},
 )::Tuple{Vec3f,Bool,Vec3f,Vec3f}
     radiance = Vec3f(0, 0, 0)
     weight = Vec3f(1, 1, 1)
@@ -442,8 +474,6 @@ function trace_naive(
     hit_albedo = Vec3f(0, 0, 0)
     hit_normal = Vec3f(0, 0, 0)
     opbounce = 0
-    bvh_stack = Vector{Int32}(undef, 32)
-    bvh_sub_stack = Vector{Int32}(undef, 32)
 
     for bounce in 0:(params.bounces - 1)
         intersection = intersect_scene_bvh(bvh, scene, ray, false, bvh_stack, bvh_sub_stack)
@@ -593,6 +623,8 @@ function trace_sample(
     j,
     sample::Int,
     params::Params,
+    bvh_stack::Vector{Int32},
+    bvh_sub_stack::Vector{Int32},
 )
     camera = scene.cameras[params.camera]
     idx = state.width * j + i + 1
@@ -626,7 +658,7 @@ function trace_sample(
     #     @printf("ray.d: %d %d %.5f %.5f %.5f\n", i, j, ray.d[1], ray.d[2], ray.d[3])
     #confirmed correct hit, albedo, normal
     radiance, hit, albedo, normal =
-        SAMPLERS[params.sampler](scene, bvh, lights, ray, params)
+        SAMPLERS[params.sampler](scene, bvh, lights, ray, params, bvh_stack, bvh_sub_stack)
     #             @printf("radiance: %.5f %.5f %.5f ", radiance[1], radiance[2], radiance[3])
     if !all(isfinite.(radiance))
         radiance = Vec3f(0, 0, 0)
