@@ -72,7 +72,7 @@ struct InstanceData
     material :: Int
 
     function InstanceData(json)
-        frame = Frame3f(Float32.(get(json, "frame", Vector())))
+        frame = Frame3f(Float32.(get(json, "frame", Vector{Float32}())))
         shape = get(json, "shape", invalid_id - 1) + 1
         material = get(json, "material", invalid_id - 1) + 1
         #todo lookat
