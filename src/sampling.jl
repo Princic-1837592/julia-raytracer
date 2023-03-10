@@ -77,4 +77,6 @@ sample_discrete_pdf(cdf::Vector{Float32}, idx::Int)::Float32 =
         cdf[idx] - cdf[idx - 1]
     end
 
+sample_triangle(ruv::Vec2f)::Vec2f = return Vec2f(1 - sqrt(ruv[1]), ruv[2] * sqrt(ruv[1]))
+
 end

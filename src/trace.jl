@@ -75,7 +75,8 @@ using ..Sampling:
     sample_uniform,
     sample_uniform_pdf,
     sample_discrete,
-    sample_discrete_pdf
+    sample_discrete_pdf,
+    sample_triangle
 using ..Shape: SceneIntersection
 using Printf: @printf
 using ..Cli: Params
