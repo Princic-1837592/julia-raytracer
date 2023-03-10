@@ -378,9 +378,9 @@ function eval_shading_position(
     shape = scene.shapes[instance.shape]
     if (length(shape.triangles) != 0 || length(shape.quads) != 0)
         return eval_position(scene, instance, element, uv)
-    elseif (length(shape.lines))
+    elseif (length(shape.lines) != 0)
         return eval_position(scene, instance, element, uv)
-    elseif (length(shape.points))
+    elseif (length(shape.points) != 0)
         return eval_position(shape, element, uv)
     else
         return Vec3f(0, 0, 0)
