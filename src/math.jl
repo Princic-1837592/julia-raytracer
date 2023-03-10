@@ -133,6 +133,15 @@ transform_direction(a::Mat3f, b::Vec3f) = normalize(transform_vector(a, b))
 
 reflect(w::Vec3f, n::Vec3f)::Vec3f = -w + 2 * dot(n, w) * n
 
+function refract(w::Vec3f, n::Vec3f, inv_eta::Float32)::Vec3f
+    cosine = dot(n, w)
+    k = 1 + inv_eta * inv_eta * (cosine * cosine - 1)
+    if (k < 0)
+        return Vec3f(0, 0, 0)
+    end
+    return -w * inv_eta + (inv_eta * cosine - sqrt(k)) * n
+end
+
 math_length(a::Vec3f) = sqrt(dot(a, a))
 
 distance_squared(a::Vec3f, b::Vec3f)::Float32 = dot(a - b, a - b)

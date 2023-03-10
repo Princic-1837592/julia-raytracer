@@ -7,7 +7,8 @@ shading:
 
 module Shading
 
-using ..Math: Vec3f, Vec2f, pif, dot, Mat3f, normalize, transform_direction, reflect
+using ..Math:
+    Vec3f, Vec2f, pif, dot, Mat3f, normalize, transform_direction, reflect, refract
 using ..Sampling: sample_hemisphere_cos_pdf
 
 function eval_matte(color::Vec3f, normal::Vec3f, outgoing::Vec3f, incoming::Vec3f)::Vec3f
@@ -672,7 +673,7 @@ sample_passthrough_pdf(
 
 mfp_to_transmission(mfp::Vec3f, depth::Float32)::Vec3f = exp(-depth / mfp)
 
-eval_transmittance(density::Vec3f, distance::Float32)::Vec3f = exp(-density * distance)
+eval_transmittance(density::Vec3f, distance::Float32)::Vec3f = exp.(-density * distance)
 
 function sample_transmittance(
     density::Vec3f,
@@ -680,13 +681,9 @@ function sample_transmittance(
     rl::Float32,
     rd::Float32,
 )::Float32
-    channel = clamp((int)(rl * 3), 0, 2)
-    distance = if density[channel] == 0
-        flt_max
-    else
-        -log(1 - rd) / density[channel]
-    end
-    return min(distance, max_distance)
+    channel = clamp(trunc(Int, rl * 3), 1, 3)
+    distance = density[channel] == 0 ? typemax(Float32) : -log(1 - rd) / density[channel]
+    min(distance, max_distance)
 end
 
 sample_transmittance_pdf(
@@ -695,9 +692,9 @@ sample_transmittance_pdf(
     max_distance::Float32,
 )::Float32 =
     if (distance < max_distance)
-        sum(density * exp(-density * distance)) / 3
+        sum(density .* exp.(-density .* distance)) / 3
     else
-        sum(exp(-density * max_distance)) / 3
+        sum(exp.(-density .* max_distance)) / 3
     end
 
 function eval_phasefunction(anisotropy::Float32, outgoing::Vec3f, incoming::Vec3f)::Float32
@@ -708,15 +705,15 @@ end
 
 function sample_phasefunction(anisotropy::Float32, outgoing::Vec3f, rn::Vec2f)::Vec3f
     cos_theta = 0.0f0
-    if (abs(anisotropy) < 1e-3f)
-        cos_theta = 1 - 2 * rn.y
+    if (abs(anisotropy) < 0.0001f0)
+        cos_theta = 1 - 2 * rn[2]
     else
-        square = (1 - anisotropy * anisotropy) / (1 + anisotropy - 2 * anisotropy * rn.y)
+        square = (1 - anisotropy * anisotropy) / (1 + anisotropy - 2 * anisotropy * rn[2])
         cos_theta = (1 + anisotropy * anisotropy - square * square) / (2 * anisotropy)
     end
 
-    sin_theta = sqrt(max(0.0f, 1 - cos_theta * cos_theta))
-    phi = 2 * pif * rn.x
+    sin_theta = sqrt(max(0.0f0, 1 - cos_theta * cos_theta))
+    phi = 2 * pif * rn[1]
     local_incoming = Vec3f(sin_theta * cos(phi), sin_theta * sin(phi), cos_theta)
     basis_fromz(-outgoing) * local_incoming
 end

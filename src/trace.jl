@@ -38,6 +38,15 @@ using ..Shading:
     sample_reflective,
     eval_reflective,
     sample_reflective_pdf,
+    sample_refractive,
+    eval_refractive,
+    sample_refractive_pdf,
+    sample_transmittance,
+    eval_transmittance,
+    sample_transmittance_pdf,
+    sample_phasefunction,
+    eval_phasefunction,
+    sample_phasefunction_pdf,
     sample_glossy,
     eval_glossy,
     sample_glossy_pdf
@@ -264,8 +273,8 @@ function trace_path(
                 rand1f(),
                 rand1f(),
             )
-            weight *=
-                eval_transmittance(vsdf.density, distance) /
+            weight =
+                weight .* eval_transmittance(vsdf.density, distance) /
                 sample_transmittance_pdf(vsdf.density, distance, intersection.distance)
             in_volume = distance < intersection.distance
             intersection.distance = distance
@@ -356,7 +365,12 @@ function trace_path(
                 dot(normal, outgoing) * dot(normal, incoming) < 0
             )
                 if (cur_volume == 0)
-                    material = eval_material(scene, intersection)
+                    material = eval_material(
+                        scene,
+                        scene.instances[intersection.instance],
+                        intersection.element,
+                        intersection.uv,
+                    )
                     cur_volume += 1
                     volume_stack[cur_volume] = material
                 else
@@ -386,8 +400,8 @@ function trace_path(
             if (incoming == Vec3f(0, 0, 0))
                 break
             end
-            weight *=
-                eval_scattering(vsdf, outgoing, incoming) / (
+            weight =
+                weight .* eval_scattering(vsdf, outgoing, incoming) / (
                     0.5f0 * sample_scattering_pdf(vsdf, outgoing, incoming) +
                     0.5f0 * sample_lights_pdf(scene, bvh, lights, position, incoming)
                 )
@@ -1089,6 +1103,37 @@ function sample_lights_pdf(
     end
     pdf *= sample_uniform_pdf(length(lights.lights))
     pdf
+end
+
+function eval_scattering(material::MaterialPoint, outgoing::Vec3f, incoming::Vec3f)::Vec3f
+    if (material.density == Vec3f(0, 0, 0))
+        return Vec3f(0, 0, 0)
+    end
+    material.scattering .* material.density .*
+    eval_phasefunction(material.scanisotropy, outgoing, incoming)
+end
+
+function sample_scattering(
+    material::MaterialPoint,
+    outgoing::Vec3f,
+    rnl::Float32,
+    rn::Vec2f,
+)::Vec3f
+    if (material.density == Vec3f(0, 0, 0))
+        return Vec3f(0, 0, 0)
+    end
+    return sample_phasefunction(material.scanisotropy, outgoing, rn)
+end
+
+function sample_scattering_pdf(
+    material::MaterialPoint,
+    outgoing::Vec3f,
+    incoming::Vec3f,
+)::Float32
+    if (material.density == Vec3f(0, 0, 0))
+        return 0
+    end
+    sample_phasefunction_pdf(material.scanisotropy, outgoing, incoming)
 end
 
 end

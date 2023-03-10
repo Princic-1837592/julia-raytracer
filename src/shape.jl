@@ -36,7 +36,7 @@ struct ShapeIntersection
         new(element, uv, distance, hit)
 end
 
-struct SceneIntersection
+mutable struct SceneIntersection
     instance :: Int
     element  :: Int
     uv       :: Vec2f
