@@ -93,18 +93,6 @@ if abspath(PROGRAM_FILE) == @__FILE__
     main(parse_cli_args(ARGS))
 else
     format(pwd(); overwrite = true)
-    #     println("first run is fake, ignore this")
-    #     main(
-    #         Params(
-    #             "tests/features1/sphere.json";
-    #             output = "tests/features1/sphere.png",
-    #             samples = 1,
-    #             resolution = 10,
-    #             sampler = "naive",
-    #             bounces = 0,
-    #             envhidden = true,
-    #         ),
-    #     )
     #     scene = "tests/features1/features1"
     scene = "tests/features1/features1_matte"
     #     scene = "tests/features1/no_environ_floor"
