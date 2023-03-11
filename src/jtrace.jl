@@ -7,6 +7,7 @@ ytrace:
 
 module Jtrace
 
+include("utils.jl")
 include("cli.jl")
 include("math.jl")
 include("color.jl")
@@ -19,6 +20,7 @@ include("bvh.jl")
 include("sceneio.jl")
 include("shading.jl")
 include("trace.jl")
+using .Utils: format_seconds
 using .Bvh: make_scene_bvh, verify_bvh
 using .Cli: Params, parse_cli_args
 using .Scene: add_sky, find_camera
@@ -33,7 +35,7 @@ function main(params::Params)
     println("loading scene...")
     load_bs = time_ns()
     scene = load_scene(params.scene, params.noparallel)
-    @printf("loaded scene in %.3fs\n", (time_ns() - load_bs) / 1e9)
+    @printf("loaded scene in %s\n", format_seconds((time_ns() - load_bs) / 1e9))
     #     return
     if params.addsky
         println("adding sky...")
@@ -71,11 +73,13 @@ function main(params::Params)
         trace_samples(state, scene, bvh, lights, params, bvh_stacks, bvh_sub_stacks)
         now = time_ns()
         @printf(
-            "sample %3d/%3d in %.3fs. ETC: %.3fs\n",
+            "sample %3d/%3d in %s ETC: %s\n",
             state.samples,
             params.samples,
-            (now - sample_ns) / 1e9,
-            (now - render_ns) / 1e9 / state.samples * (params.samples - state.samples),
+            format_seconds((now - sample_ns) / 1e9),
+            format_seconds(
+                (now - render_ns) / 1e9 / state.samples * (params.samples - state.samples),
+            ),
         )
     end
     @printf("rendered in %.3f s\n", (time_ns() - render_ns) / 1e9)
