@@ -563,12 +563,12 @@ function trace_naive(
         #             material.scattering[3]
         #         )
 
-        if (material.opacity < 1 && rand1f() >= material.opacity)
+        if (material.opacity < 1 && rand1f(3) >= material.opacity)
             if opbounce > 128
                 break
             end
             opbounce += 1
-            ray = (position + ray.d * 1e-2, ray.d)
+            ray = Ray3f(position + ray.d * 0.01f0, ray.d)
             bounce -= 1
             continue
         end
@@ -583,7 +583,7 @@ function trace_naive(
 
         incoming = Vec3f(0, 0, 0)
         if (material.roughness != 0)
-            incoming = sample_bsdfcos(material, normal, outgoing, rand1f(), rand2f())
+            incoming = sample_bsdfcos(material, normal, outgoing, rand1f(4), rand2f(5))
             if (incoming == Vec3f(0, 0, 0))
                 break
             end
@@ -591,7 +591,7 @@ function trace_naive(
                 weight .* eval_bsdfcos(material, normal, outgoing, incoming) /
                 sample_bsdfcos_pdf(material, normal, outgoing, incoming)
         else
-            incoming = sample_delta(material, normal, outgoing, rand1f())
+            incoming = sample_delta(material, normal, outgoing, rand1f(6))
             if (incoming == Vec3f(0, 0, 0))
                 break
             end
@@ -606,7 +606,7 @@ function trace_naive(
 
         if (bounce > 3)
             rr_prob = min(0.99f0, maximum(weight))
-            if (rand1f() >= rr_prob)
+            if (rand1f(7) >= rr_prob)
                 break
             end
             weight *= 1 / rr_prob
@@ -648,14 +648,8 @@ function trace_sample(
 )
     camera = scene.cameras[params.camera]
     idx = state.width * j + i + 1
-    if i == 33 && j == 8
-        #         @printf("next rand: %.5f\n", rand1f())
-    end
-    puv = rand2f()
-    luv = rand2f()
-    #     @printf("ij: %d %d ", i, j)
-    #     @printf("puv: %.5f %.5f ", puv[1], puv[2])
-    #     @printf("luv: %.5f %.5f\n", luv[1], luv[2])
+    puv = rand2f(1)
+    luv = rand2f(2)
     ray = sample_camera(
         camera,
         Vec2i(i, j),
