@@ -50,6 +50,9 @@ using ..Shading:
     sample_transparent,
     eval_transparent,
     sample_transparent_pdf,
+    sample_passthrough,
+    eval_passthrough,
+    sample_passthrough_pdf,
     sample_glossy,
     eval_glossy,
     sample_glossy_pdf

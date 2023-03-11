@@ -182,6 +182,7 @@ MaterialTypes = Dict(
     "transparent" => transparent,
     "refractive" => refractive,
     "subsurface" => subsurface,
+    "volume" => volumetric,
     "volumetric" => volumetric,
     "gltfpbr" => gltfpbr,
 )
