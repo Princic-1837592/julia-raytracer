@@ -33,7 +33,7 @@ function main(params::Params)
     println("loading scene...")
     load_bs = time_ns()
     scene = load_scene(params.scene, params.noparallel)
-    @printf("loaded scene in %.3fs",(time_ns() - load_bs)/1e9)
+    @printf("loaded scene in %.3fs\n", (time_ns() - load_bs) / 1e9)
     #     return
     if params.addsky
         println("adding sky...")
