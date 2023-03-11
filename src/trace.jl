@@ -283,7 +283,9 @@ function trace_path(
     opbounce = 0
 
     # trace  path
-    for bounce in 0:(params.bounces - 1)
+    bounce = -1
+    while bounce < params.bounces
+        bounce += 1
         # intersect next point
         intersection = intersect_scene_bvh(bvh, scene, ray, false, bvh_stack, bvh_sub_stack)
         if (!intersection.hit)
@@ -495,7 +497,9 @@ function trace_naive(
     hit_normal = Vec3f(0, 0, 0)
     opbounce = 0
 
-    for bounce in 0:(params.bounces - 1)
+    bounce = -1
+    while bounce < params.bounces
+        bounce += 1
         intersection = intersect_scene_bvh(bvh, scene, ray, false, bvh_stack, bvh_sub_stack)
         if !intersection.hit
             if bounce > 0 || !params.envhidden
