@@ -265,7 +265,7 @@ function trace_path(
     scene::SceneData,
     bvh::SceneBvh,
     lights::TraceLights,
-    ray_::Ray3f,
+    ray::Ray3f,
     params::Params,
     bvh_stack::Vector{Int32},
     bvh_sub_stack::Vector{Int32},
@@ -273,7 +273,6 @@ function trace_path(
     # initialize
     radiance = Vec3f(0, 0, 0)
     weight = Vec3f(1, 1, 1)
-    ray = ray_
     volume_stack = Vector{MaterialPoint}(undef, params.bounces)
     cur_volume = 0
     max_roughness = 0.0f0
