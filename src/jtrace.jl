@@ -31,7 +31,9 @@ function main(params::Params)
         println("highqualitybvh is still not implemented")
     end
     println("loading scene...")
+    load_bs = time_ns()
     scene = load_scene(params.scene, params.noparallel)
+    println("loaded scene in $((time_ns() - load_bs)/1e9) s")
     #     return
     if params.addsky
         println("adding sky...")
@@ -56,7 +58,6 @@ function main(params::Params)
     println("making state...")
     state = make_trace_state(scene, params)
     println("tracing samples...")
-    println("load scene: 00:00:00.220\nbuild bvh: 00:00:00.341")
     render_ns = time_ns()
     stacks = params.noparallel ? 1 : Threads.nthreads()
     bvh_stacks = Vector{Vector{Int32}}(undef, stacks)
