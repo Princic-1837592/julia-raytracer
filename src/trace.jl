@@ -495,11 +495,13 @@ function trace_naive(
     hit_albedo = Vec3f(0, 0, 0)
     hit_normal = Vec3f(0, 0, 0)
     opbounce = 0
+    #     @printf("ray %.5f %.5f %.5f ", ray.d[1], ray.d[2], ray.d[3])
 
     bounce = -1
     while bounce < params.bounces
         bounce += 1
         intersection = intersect_scene_bvh(bvh, scene, ray, false, bvh_stack, bvh_sub_stack)
+        #         @printf("bounce: %d hit: %d\n", bounce, intersection.hit)
         if !intersection.hit
             if bounce > 0 || !params.envhidden
                 radiance += weight .* eval_environment(scene, ray.d)
@@ -618,12 +620,13 @@ function trace_naive(
         ray = Ray3f(position, incoming)
         #         @printf("radiance: %.5f %.5f %.5f\n", radiance[1], radiance[2], radiance[3])
     end
-    #     @printf("\n")
-    #     @printf("radiance: %.5f %.5f %.5f\n", radiance[1], radiance[2], radiance[3])
-    #     @printf("albedo: %.5f %.5f %.5f ", hit_albedo[1], hit_albedo[2], hit_albedo[3])
-    #     @printf("normal: %.5f %.5f %.5f\n", hit_normal[1], hit_normal[2], hit_normal[3])
-    #     @printf("hit: %d ", hit)
-    #     @printf("weight: %.5f %.5f %.5f\n", weight[1], weight[2], weight[3])
+    #             @printf("\n")
+    #     @printf("ray %.5f %.5f %.5f\n", ray.d[1], ray.d[2], ray.d[3])
+    #     @printf("h %d ", hit)
+    #     @printf("r %.5f %.5f %.5f\n", radiance[1], radiance[2], radiance[3])
+    #     @printf("a %.5f %.5f %.5f ", hit_albedo[1], hit_albedo[2], hit_albedo[3])
+    #     @printf("n %.5f %.5f %.5f ", hit_normal[1], hit_normal[2], hit_normal[3])
+    #     @printf("w %.5f %.5f %.5f\n", weight[1], weight[2], weight[3])
 
     return (radiance, hit, hit_albedo, hit_normal)
 end
@@ -661,18 +664,6 @@ function trace_sample(
         luv,
         params.tentfilter,
     )
-    if i == 33 && j == 8
-        #         @printf("next rand: %.5f\n", rand1f())
-    end
-    #     ray = sample_camera(
-    #         camera,
-    #         Vec2i(i, j),
-    #         Vec2i(state.width, state.height),
-    #         Vec2f(),
-    #         Vec2f(),
-    #         params.tentfilter,
-    #     )
-    #     @printf("ray.d: %d %d %.5f %.5f %.5f\n", i, j, ray.d[1], ray.d[2], ray.d[3])
     #confirmed correct hit, albedo, normal
     radiance, hit, albedo, normal =
         SAMPLERS[params.sampler](scene, bvh, lights, ray, params, bvh_stack, bvh_sub_stack)
@@ -680,7 +671,6 @@ function trace_sample(
     if !all(isfinite.(radiance))
         radiance = Vec3f(0, 0, 0)
     end
-    #todo
     if (maximum(radiance) > params.clamp)
         radiance = radiance .* (params.clamp / maximum(radiance))
     end
