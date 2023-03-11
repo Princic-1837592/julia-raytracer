@@ -215,13 +215,15 @@ function trace_samples(
     bvh::SceneBvh,
     lights::TraceLights,
     params::Params,
+    bvh_stacks::Vector{Vector{Int32}},
+    bvh_sub_stacks::Vector{Vector{Int32}},
 )
     if state.samples >= params.samples
         return
     end
     if params.noparallel
-        bvh_stack = Vector{Int32}(undef, 32)
-        bvh_sub_stack = Vector{Int32}(undef, 32)
+        bvh_stack = bvh_stacks[1]
+        bvh_sub_stack = bvh_sub_stacks[1]
         for j in 0:(state.height - 1)
             for i in 0:(state.width - 1)
                 trace_sample(
@@ -239,12 +241,6 @@ function trace_samples(
             end
         end
     else
-        bvh_stacks = Vector{Vector{Int32}}(undef, Threads.nthreads())
-        bvh_sub_stacks = Vector{Vector{Int32}}(undef, Threads.nthreads())
-        for tid in 1:Threads.nthreads()
-            bvh_stacks[tid] = Vector{Int32}(undef, 32)
-            bvh_sub_stacks[tid] = Vector{Int32}(undef, 32)
-        end
         Threads.@threads for j in 0:(state.height - 1)
             Threads.@threads for i in 0:(state.width - 1)
                 trace_sample(
