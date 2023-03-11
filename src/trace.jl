@@ -484,14 +484,13 @@ function trace_naive(
     scene::SceneData,
     bvh::SceneBvh,
     lights::TraceLights,
-    ray_::Ray3f,
+    ray::Ray3f,
     params::Params,
     bvh_stack::Vector{Int32},
     bvh_sub_stack::Vector{Int32},
 )::Tuple{Vec3f,Bool,Vec3f,Vec3f}
     radiance = Vec3f(0, 0, 0)
     weight = Vec3f(1, 1, 1)
-    ray = Ray3f(ray_)
     hit = false
     hit_albedo = Vec3f(0, 0, 0)
     hit_normal = Vec3f(0, 0, 0)
