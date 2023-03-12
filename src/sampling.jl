@@ -554,10 +554,16 @@ sample_uniform_pdf(size::Int)::Float32 = 1 / size
 
 function sample_discrete(cdf::Vector{Float32}, r::Float32)::Int
     r = clamp(r * last(cdf), 0.0f0, last(cdf) - 0.00001f0)
-    #todo
-    idx = upper_bound(cdf, r)
+    idx = dicotomic_upper_bound(cdf, r)
     clamp(idx, 1, length(cdf))
 end
+
+sample_discrete_pdf(cdf::Vector{Float32}, idx::Int)::Float32 =
+    if (idx == 1)
+        cdf[1]
+    else
+        cdf[idx] - cdf[idx - 1]
+    end
 
 function upper_bound(cdf::Vector{Float32}, r::Float32)::Int
     idx = 0
@@ -570,12 +576,21 @@ function upper_bound(cdf::Vector{Float32}, r::Float32)::Int
     idx
 end
 
-sample_discrete_pdf(cdf::Vector{Float32}, idx::Int)::Float32 =
-    if (idx == 1)
-        cdf[1]
-    else
-        cdf[idx] - cdf[idx - 1]
+function dicotomic_upper_bound(cdf::Vector{Float32}, limit::Float32)::Int
+    idx = 0
+    l = 1
+    r = length(cdf)
+    while l <= r
+        m = div((l + r), 2)
+        if cdf[m] > limit
+            idx = m
+            r = m - 1
+        else
+            l = m + 1
+        end
     end
+    idx
+end
 
 sample_triangle(ruv::Vec2f)::Vec2f = return Vec2f(1 - sqrt(ruv[1]), ruv[2] * sqrt(ruv[1]))
 
