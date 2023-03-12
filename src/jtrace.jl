@@ -36,7 +36,6 @@ function main(params::Params)
     load_bs = time_ns()
     scene = load_scene(params.scene, params.noparallel)
     @printf("loaded scene in %s\n", format_seconds((time_ns() - load_bs) / 1e9))
-    #     return
     if params.addsky
         println("adding sky...")
         add_sky(scene)
@@ -50,11 +49,6 @@ function main(params::Params)
     #todo(?) subdivs
     println("building bvh...")
     bvh = make_scene_bvh(scene, params.highqualitybvh, params.noparallel)
-    println(if verify_bvh(bvh)
-        "bvh is valid"
-    else
-        "bvh is invalid"
-    end)
     println("making lights...")
     lights = make_trace_lights(scene, params)
     println("making state...")
