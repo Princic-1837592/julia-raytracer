@@ -283,6 +283,7 @@ function trace_path(
     hit_albedo = Vec3f(0, 0, 0)
     hit_normal = Vec3f(0, 0, 0)
     opbounce = 0
+    #     @printf("ray %.5f %.5f %.5f\n", ray.d[1], ray.d[2], ray.d[3])
 
     # trace  path
     bounce = -1
@@ -304,8 +305,8 @@ function trace_path(
             distance = sample_transmittance(
                 vsdf.density,
                 intersection.distance,
-                rand1f(),
-                rand1f(),
+                rand1f(3),
+                rand1f(4),
             )
             weight =
                 weight .* eval_transmittance(vsdf.density, distance) /
@@ -354,7 +355,7 @@ function trace_path(
             end
 
             # handle opacity
-            if (material.opacity < 1 && rand1f() >= material.opacity)
+            if (material.opacity < 1 && rand1f(5) >= material.opacity)
                 if (opbounce > 128)
                     break
                 end
@@ -377,16 +378,26 @@ function trace_path(
             # next direction
             incoming = Vec3f(0, 0, 0)
             if (!is_delta(material))
-                if (rand1f() < 0.5f0)
+                if (rand1f(6) < 0.5f0)
                     incoming =
-                        sample_bsdfcos(material, normal, outgoing, rand1f(), rand2f())
+                        sample_bsdfcos(material, normal, outgoing, rand1f(7), rand2f(8))
                 else
-                    incoming =
-                        sample_lights(scene, lights, position, rand1f(), rand1f(), rand2f())
+                    incoming = sample_lights(
+                        scene,
+                        lights,
+                        position,
+                        rand1f(9),
+                        rand1f(10),
+                        rand2f(11),
+                    )
                 end
                 if (incoming == Vec3f(0, 0, 0))
                     break
                 end
+                #                 @printf("incoming %.5f %.5f %.5f ", incoming[1], incoming[2], incoming[3])
+                #                 @printf("weight %.5f %.5f %.5f\n", weight[1], weight[2], weight[3])
+                #                 @printf("normal %.5f %.5f %.5f ", normal[1], normal[2], normal[3])
+                #                 @printf("outgoing %.5f %.5f %.5f\n", outgoing[1], outgoing[2], outgoing[3])
                 weight =
                     weight .* eval_bsdfcos(material, normal, outgoing, incoming) / (
                         0.5f0 * sample_bsdfcos_pdf(material, normal, outgoing, incoming) +
@@ -399,8 +410,9 @@ function trace_path(
                             bvh_sub_stack,
                         )
                     )
+                #                 @printf("weight %.5f %.5f %.5f\n", weight[1], weight[2], weight[3])
             else
-                incoming = sample_delta(material, normal, outgoing, rand1f())
+                incoming = sample_delta(material, normal, outgoing, rand1f(12))
                 weight =
                     weight .* eval_delta(material, normal, outgoing, incoming) /
                     sample_delta_pdf(material, normal, outgoing, incoming)
@@ -438,11 +450,17 @@ function trace_path(
 
             # next direction
             incoming = Vec3f(0, 0, 0)
-            if (rand1f() < 0.5f0)
-                incoming = sample_scattering(vsdf, outgoing, rand1f(), rand2f())
+            if (rand1f(13) < 0.5f0)
+                incoming = sample_scattering(vsdf, outgoing, rand1f(14), rand2f(15))
             else
-                incoming =
-                    sample_lights(scene, lights, position, rand1f(), rand1f(), rand2f())
+                incoming = sample_lights(
+                    scene,
+                    lights,
+                    position,
+                    rand1f(16),
+                    rand1f(17),
+                    rand2f(18),
+                )
             end
             if (incoming == Vec3f(0, 0, 0))
                 break
@@ -472,12 +490,18 @@ function trace_path(
         # russian roulette
         if (bounce > 3)
             rr_prob = min(0.99f0, maximum(weight))
-            if (rand1f() >= rr_prob)
+            if (rand1f(19) >= rr_prob)
                 break
             end
             weight *= 1 / rr_prob
         end
     end
+    #     @printf("ray %.5f %.5f %.5f\n", ray.d[1], ray.d[2], ray.d[3])
+    #     @printf("h %d ", hit)
+    #     @printf("r %.5f %.5f %.5f\n", radiance[1], radiance[2], radiance[3])
+    #     @printf("a %.5f %.5f %.5f ", hit_albedo[1], hit_albedo[2], hit_albedo[3])
+    #     @printf("n %.5f %.5f %.5f ", hit_normal[1], hit_normal[2], hit_normal[3])
+    #     @printf("w %.5f %.5f %.5f\n", weight[1], weight[2], weight[3])
 
     return (radiance, hit, hit_albedo, hit_normal)
 end
@@ -497,7 +521,7 @@ function trace_naive(
     hit_albedo = Vec3f(0, 0, 0)
     hit_normal = Vec3f(0, 0, 0)
     opbounce = 0
-    #     @printf("ray %.5f %.5f %.5f ", ray.d[1], ray.d[2], ray.d[3])
+    #     @printf("ray %.5f %.5f %.5f\n", ray.d[1], ray.d[2], ray.d[3])
 
     bounce = -1
     while bounce < params.bounces
@@ -1039,8 +1063,10 @@ function sample_lights(
     ruv::Vec2f,
 )::Vec3f
     light_id = sample_uniform(length(lights.lights), rl)
+    #     @printf("light_id: %d ", light_id)
     light = lights.lights[light_id]
     if (light.instance != invalid_id)
+        #         @printf("if ")
         instance = scene.instances[light.instance]
         shape = scene.shapes[instance.shape]
         element = sample_discrete(light.elements_cdf, rel)
@@ -1048,10 +1074,13 @@ function sample_lights(
         lposition = eval_position(scene, instance, element, uv)
         normalize(lposition - position)
     elseif (light.environment != invalid_id)
+        #         @printf("elseif ")
         environment = scene.environments[light.environment]
         if (environment.emission_tex != invalid_id)
+            #             @printf("    if ")
             emission_tex = scene.textures[environment.emission_tex]
             idx = sample_discrete(light.elements_cdf, rel)
+            #             @printf("idx: %d ", idx)
             uv = Vec2f(
                 ((idx % emission_tex.width) + 0.5f0) / emission_tex.width,
                 ((idx / emission_tex.width) + 0.5f0) / emission_tex.height,
@@ -1065,9 +1094,11 @@ function sample_lights(
                 ),
             )
         else
+            #             @printf("    else ")
             sample_sphere(ruv)
         end
     else
+        #         @printf("else ")
         Vec3f(0, 0, 0)
     end
 end
