@@ -535,7 +535,9 @@ idx = 1
 #     if idx > length(values)
 #         idx = 1
 #     end
-#     #     @printf("returning %d %.4f %d\n", idx, values[idx], line)
+#     if line != -1
+#         #         @printf("returning %d %.4f %d\n", idx, values[idx], line)
+#     end
 #     return values[idx]
 # end
 rand1f(line = -1) = rand(Float32)
