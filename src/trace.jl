@@ -1046,7 +1046,7 @@ function sample_lights(
         element = sample_discrete(light.elements_cdf, rel)
         uv = (length(shape.triangles) != 0) ? sample_triangle(ruv) : ruv
         lposition = eval_position(scene, instance, element, uv)
-        return normalize(lposition - position)
+        normalize(lposition - position)
     elseif (light.environment != invalid_id)
         environment = scene.environments[light.environment]
         if (environment.emission_tex != invalid_id)
@@ -1056,7 +1056,7 @@ function sample_lights(
                 ((idx % emission_tex.width) + 0.5f0) / emission_tex.width,
                 ((idx / emission_tex.width) + 0.5f0) / emission_tex.height,
             )
-            return transform_direction(
+            transform_direction(
                 environment.frame,
                 Vec3f(
                     cos(uv[1] * 2 * pif) * sin(uv[2] * pif),
@@ -1065,10 +1065,10 @@ function sample_lights(
                 ),
             )
         else
-            return sample_sphere(ruv)
+            sample_sphere(ruv)
         end
     else
-        return Vec3f(0, 0, 0)
+        Vec3f(0, 0, 0)
     end
 end
 
