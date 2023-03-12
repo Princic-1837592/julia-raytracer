@@ -350,7 +350,7 @@ function trace_path(
             # correct roughness
             if (params.nocaustics)
                 max_roughness = max(material.roughness, max_roughness)
-                material.roughness = max_roughness
+                material = MaterialPoint(material, max_roughness)
             end
 
             # handle opacity
