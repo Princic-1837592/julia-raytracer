@@ -281,6 +281,19 @@ struct MaterialPoint
         scanisotropy,
         trdepth,
     )
+    MaterialPoint(material::MaterialPoint, roughness::Float32) = new(
+        material.type,
+        material.emission,
+        material.color,
+        material.opacity,
+        roughness,
+        material.metallic,
+        material.ior,
+        material.density,
+        material.scattering,
+        material.scanisotropy,
+        material.trdepth,
+    )
 end
 
 struct SubdivData
