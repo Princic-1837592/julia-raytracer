@@ -548,7 +548,7 @@ function sample_hemisphere_cos_pdf(normal::Vec3f, direction::Vec3f)::Float32
     (cosw <= 0) ? 0 : cosw / pif
 end
 
-sample_uniform(size::Int, r::Float32)::Int = clamp(trunc(Int, r * size), 1, size)
+sample_uniform(size::Int, r::Float32)::Int = clamp(trunc(Int, r * size) + 1, 1, size)
 
 sample_uniform_pdf(size::Int)::Float32 = 1 / size
 
