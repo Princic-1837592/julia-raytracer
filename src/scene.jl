@@ -36,7 +36,7 @@ using ..Geometry:
     interpolate_line,
     triangle_tangents_fromuv,
     quad_tangents_fromuv
-using ImageMagick: load, load_
+using FileIO
 using Printf: @printf
 
 const invalid_id = -1
@@ -116,42 +116,16 @@ function load_texture(path::String)::TextureData
     ext = lowercase(splitext(path)[2])
     if ext == ".hdr"
         #todo fix wrong values
-        img = load(path)
+        img = load(File{format"HDR"}(path))
         height, width = size(img)
         linear = true
         pixelsf = Vector{Vec4f}(undef, length(img))
         pixelsb = Vector{Vec4b}(undef, 0)
         for i in 1:length(img)
-            pixelsf[i] = Vec4f(img[i])
+            pixelsf[i] = Vec4f(img[div((i - 1), width) + 1, ((i - 1) % width) + 1])
         end
-        #         for i in 1:500:length(texture.pixelsf)
-        #             @printf(
-        #                 "%d %.5f %.5f %.5f %.5f ",
-        #                 i,
-        #                 texture.pixelsf[i][1],
-        #                 texture.pixelsf[i][2],
-        #                 texture.pixelsf[i][3],
-        #                 texture.pixelsf[i][4]
-        #             )
-        #             @printf(
-        #                 "%d %.5f %.5f %.5f %.5f ",
-        #                 i + 1,
-        #                 texture.pixelsf[i + 1][1],
-        #                 texture.pixelsf[i + 1][2],
-        #                 texture.pixelsf[i + 1][3],
-        #                 texture.pixelsf[i + 1][4]
-        #             )
-        #             @printf(
-        #                 "%d %.5f %.5f %.5f %.5f\n",
-        #                 i + 2,
-        #                 texture.pixelsf[i + 2][1],
-        #                 texture.pixelsf[i + 2][2],
-        #                 texture.pixelsf[i + 2][3],
-        #                 texture.pixelsf[i + 2][4]
-        #             )
-        #         end
     elseif ext == ".png"
-        img = load(path)
+        img = load(File{format"PNG"}(path))
         height, width = size(img)
         linear = false
         pixelsb = Vector{Vec4b}(undef, length(img))
