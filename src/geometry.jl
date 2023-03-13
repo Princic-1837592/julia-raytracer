@@ -114,15 +114,15 @@ function transform_ray(frame::Frame3f, ray::Ray3f)::Ray3f
 end
 
 function intersect_point(ray::Ray3f, p::Vec3f, r::Float32)::PrimIntersection
-    w = p - ray.o
+    w = p .- ray.o
     t = dot(w, ray.d) / dot(ray.d, ray.d)
 
     if (t < ray.tmin || t > ray.tmax)
         return PrimIntersection()
     end
 
-    rp = ray.o + ray.d * t
-    prp = p - rp
+    rp = @. ray.o + ray.d * t
+    prp = p .- rp
     if (dot(prp, prp) > r * r)
         return PrimIntersection()
     end
@@ -138,8 +138,8 @@ function intersect_line(
     r2::Float32,
 )::PrimIntersection
     u = ray.d
-    v = p2 - p1
-    w = ray.o - p1
+    v = p2 .- p1
+    w = ray.o .- p1
 
     a = dot(u, u)
     b = dot(u, v)
@@ -161,9 +161,9 @@ function intersect_line(
 
     s = clamp(s, 0.0f0, 1.0f0)
 
-    pr = ray.o + ray.d * t
-    pl = p1 + (p2 - p1) * s
-    prl = pr - pl
+    pr = @. ray.o + ray.d * t
+    pl = @. p1 + (p2 - p1) * s
+    prl = @. pr - pl
 
     d2 = dot(prl, prl)
     r = r1 * (1 - s) + r2 * s
@@ -176,8 +176,8 @@ end
 
 function intersect_sphere(ray::Ray3f, p::Vec3f, r::Float32)::PrimIntersection
     a = dot(ray.d, ray.d)
-    b = 2 * dot(ray.o - p, ray.d)
-    c = dot(ray.o - p, ray.o - p) - r * r
+    b = 2 * dot(ray.o .- p, ray.d)
+    c = dot(ray.o .- p, ray.o .- p) - r * r
 
     dis = b * b - 4 * a * c
     if (dis < 0)
@@ -207,8 +207,8 @@ function intersect_sphere(ray::Ray3f, p::Vec3f, r::Float32)::PrimIntersection
 end
 
 function intersect_triangle(ray::Ray3f, p1::Vec3f, p2::Vec3f, p3::Vec3f)::PrimIntersection
-    edge1 = p2 - p1
-    edge2 = p3 - p1
+    edge1 = p2 .- p1
+    edge2 = p3 .- p1
 
     pvec = cross(ray.d, edge2)
     det = dot(edge1, pvec)
@@ -216,9 +216,9 @@ function intersect_triangle(ray::Ray3f, p1::Vec3f, p2::Vec3f, p3::Vec3f)::PrimIn
     if (det == 0)
         return PrimIntersection()
     end
-    inv_det::Float32 = 1.0 / det
+    inv_det::Float32 = 1.0f0 / det
 
-    tvec = ray.o - p1
+    tvec = ray.o .- p1
     u = dot(tvec, pvec) * inv_det
     if (u < 0 || u > 1)
         return PrimIntersection()
@@ -260,12 +260,12 @@ function intersect_quad(
     end
 end
 
-line_tangent(p1::Vec3f, p2::Vec3f) = normalize(p2 - p1)
+line_tangent(p1::Vec3f, p2::Vec3f) = normalize(p2 .- p1)
 
-triangle_normal(p1::Vec3f, p2::Vec3f, p3::Vec3f) = normalize(cross(p2 - p1, p3 - p1))
+triangle_normal(p1::Vec3f, p2::Vec3f, p3::Vec3f) = normalize(cross(p2 .- p1, p3 .- p1))
 
 triangle_area(p0::Vec3f, p1::Vec3f, p2::Vec3f)::Float32 =
-    math_length(cross(p1 - p0, p2 - p0)) / 2
+    math_length(cross(p1 .- p0, p2 .- p0)) / 2
 
 quad_normal(p1::Vec3f, p2::Vec3f, p3::Vec3f, p4::Vec3f) =
     normalize(triangle_normal(p1, p2, p4) + triangle_normal(p3, p4, p2))
@@ -273,13 +273,13 @@ quad_normal(p1::Vec3f, p2::Vec3f, p3::Vec3f, p4::Vec3f) =
 quad_area(p0::Vec3f, p1::Vec3f, p2::Vec3f, p3::Vec3f)::Float32 =
     triangle_area(p0, p1, p3) + triangle_area(p2, p3, p1)
 
-interpolate_line(p1, p2, u::Float32) = p1 * (1 - u) + p2 * u
+interpolate_line(p1, p2, u::Float32) = @. p1 * (1 - u) + p2 * u
 
 interpolate_triangle(p1, p2, p3, uv::Vec2f) =
-    p1 * (1 .- uv.x .- uv.y) + p2 * uv.x + p3 * uv.y
+    @. p1 * (1 - uv[1] - uv[2]) + p2 * uv[1] + p3 * uv[2]
 
 interpolate_quad(p1, p2, p3, p4, uv::Vec2f) =
-    if (uv.x + uv.y <= 1)
+    if (uv[1] + uv[2] <= 1)
         interpolate_triangle(p1, p2, p4, uv)
     else
         interpolate_triangle(p3, p4, p2, 1 .- uv)
@@ -296,8 +296,8 @@ function triangle_tangents_fromuv(
     #   // Follows the definition in http://www.terathon.com/code/tangent.html and
     #   // https://gist.github.com/aras-p/2843984
     #   // normal points up from texture space
-    p = p2 - p1
-    q = p3 - p1
+    p = p2 .- p1
+    q = p3 .- p1
     s = Vec2f(uv2[1] - uv1[1], uv3[1] - uv1[1])
     t = Vec2f(uv2[2] - uv1[2], uv3[2] - uv1[2])
     div = s[1] * t[2] - s[2] * t[1]
