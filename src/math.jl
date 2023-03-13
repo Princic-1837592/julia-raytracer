@@ -71,7 +71,6 @@ function normalize(a::Vec3f)
     end
 end
 
-#yocto_math.h 2233
 transform_point(frame::Frame3f, point::Vec3f)::Vec3f =
     ((frame[1]) .* point[1] + (frame[2]) .* point[2] + (frame[3]) .* point[3]) .+ frame[4]
 
@@ -125,10 +124,6 @@ transform_normal(a::Frame3f, b::Vec3f, non_rigid::Bool = false) =
 
 orthonormalize(a::Vec3f, b::Vec3f)::Vec3f = normalize(a - b * dot(a, b))
 
-# clamp(x::Float32, min::Float32, max::Float32)::Float32 = min(max(x, min), max)
-
-# clamp(x::Int32, min::Int32, max::Int32)::Int32 = min(max(x, min), max)
-
 transform_direction(a::Mat3f, b::Vec3f) = normalize(transform_vector(a, b))
 
 reflect(w::Vec3f, n::Vec3f)::Vec3f = -w + 2 * dot(n, w) * n
@@ -144,6 +139,6 @@ end
 
 math_length(a::Vec3f) = sqrt(dot(a, a))
 
-distance_squared(a::Vec3f, b::Vec3f)::Float32 = dot(a - b, a - b)
+distance_squared(a::Vec3f, b::Vec3f)::Float32 = dot(a .- b, a .- b)
 
 end
