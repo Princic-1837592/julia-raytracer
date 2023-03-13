@@ -31,7 +31,7 @@ struct Bbox3f
     Bbox3f(min::Vec3f, max::Vec3f) = new(min, max)
 end
 
-const ray_eps::Float32 = 1e-4
+const ray_eps::Float32 = 0.0001f0
 
 struct Ray3f
     o    :: Vec3f
@@ -55,7 +55,6 @@ struct PrimIntersection
     PrimIntersection(uv::Vec2f, distance::Float32, hit::Bool) = new(uv, distance, hit)
 end
 
-#todo-check if correct to use min. and max. here
 point_bounds(p::Vec3f, r::Float32)::Bbox3f =
     Bbox3f(min.(p .- r, p .+ r), max.(p .- r, p .+ r))
 
@@ -68,7 +67,6 @@ triangle_bounds(p1::Vec3f, p2::Vec3f, p3::Vec3f)::Bbox3f =
 quad_bounds(p1::Vec3f, p2::Vec3f, p3::Vec3f, p4::Vec3f)::Bbox3f =
     Bbox3f(min.(p1, p2, p3, p4), max.(p1, p2, p3, p4))
 
-#yocto_geometry.cpp 455
 function transform_bbox(frame::Frame3f, bbox::Bbox3f)::Bbox3f
     corners = [
         Vec3f(bbox.min[1], bbox.min[2], bbox.min[3]),
@@ -87,7 +85,6 @@ function transform_bbox(frame::Frame3f, bbox::Bbox3f)::Bbox3f
     return xformed
 end
 
-#yocto_geometry.cpp 410
 merge_bbox3f(bbox::Bbox3f, vector::Vec3f)::Bbox3f =
     Bbox3f(min.(bbox.min, vector), max.(bbox.max, vector))
 
@@ -293,9 +290,6 @@ function triangle_tangents_fromuv(
     uv2::Vec2f,
     uv3::Vec2f,
 )::Tuple{Vec3f,Vec3f}
-    #   // Follows the definition in http://www.terathon.com/code/tangent.html and
-    #   // https://gist.github.com/aras-p/2843984
-    #   // normal points up from texture space
     p = p2 .- p1
     q = p3 .- p1
     s = Vec2f(uv2[1] - uv1[1], uv3[1] - uv1[1])
