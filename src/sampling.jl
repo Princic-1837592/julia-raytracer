@@ -15,10 +15,11 @@ function sample_disk(ruv::Vec2f)::Vec2f
     Vec2f(cos(phi) * r, sin(phi) * r)
 end
 
-rand1f(line = -1) = rand(Float32)
-rand2f(line = -1) = Vec2f(rand1f(line), rand1f(line))
+rand1f() = rand(Float32)
 
-rand3f(line = -1) = Vec3f(rand1f(line), rand1f(line), rand1f(line))
+rand2f() = Vec2f(rand1f(), rand1f())
+
+rand3f() = Vec3f(rand1f(), rand1f(), rand1f())
 
 function sample_hemisphere_cos_pdf(normal::Vec3f, direction::Vec3f)::Float32
     cosw = dot(normal, direction)
