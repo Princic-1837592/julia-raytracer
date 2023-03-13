@@ -166,7 +166,8 @@ function make_bvh(bboxes::Vector{Bbox3f}, high_quality::Bool)::BvhTree
             mid, axis = if high_quality
                 #todo method does not exist yet
                 #split_sah(centers, bboxes, left, right)
-                (1, 1)
+                error("not implemented")
+                #                 (1, 1)
             else
                 split_middle(bvh.primitives, bboxes, centers, left, right)
             end
@@ -474,98 +475,6 @@ function intersect_instance_bvh(
         intersection.distance,
         true,
     )
-end
-
-function verify_bvh(bvh::SceneBvh)::Bool
-    function verify_tree(tree)::Bool
-        total = 0
-        for node in tree.nodes
-            if !node.internal
-                total += node.num
-            end
-        end
-        if total != length(tree.primitives)
-            @printf("total %d != primitives %d\n", total, length(tree.primitives))
-            return false
-        end
-        seen = Vector{Bool}(undef, total)
-        for i in 1:length(seen)
-            seen[i] = false
-        end
-        for node in tree.nodes
-            if !node.internal
-                for i in (node.start):(node.start + node.num - 1)
-                    if seen[i]
-                        println("seen $i")
-                        return false
-                    end
-                    seen[i] = true
-                end
-            end
-        end
-        for i in 1:length(seen)
-            if !seen[i]
-                println("not seen $i")
-                return false
-            end
-        end
-        true
-    end
-
-    function print_bvh(tree::BvhTree)
-        d = 10
-        i = 0
-        for node in tree.nodes
-            if node.internal && i % d == 0
-                @printf("%d %d %d %d ", node.start, node.num, node.internal, node.axis)
-                @printf(
-                    "%.5f %.5f %.5f ",
-                    node.bbox.min[1],
-                    node.bbox.min[2],
-                    node.bbox.min[3]
-                )
-                @printf(
-                    "%.5f %.5f %.5f\n",
-                    node.bbox.max[1],
-                    node.bbox.max[2],
-                    node.bbox.max[3]
-                )
-                #                 if i % (2 * d) == 0
-                #                     println()
-                #                 end
-            end
-            i += 1
-        end
-    end
-    #     print_bvh(bvh.bvh)
-    #     for shape in bvh.shapes
-    #         print_bvh(shape.bvh)
-    #     end
-
-    println("verifying bvh...")
-    if !verify_tree(bvh.bvh)
-        return false
-    end
-    for shape in bvh.shapes
-        if !verify_tree(shape.bvh)
-            return false
-        end
-        for node in shape.bvh.nodes
-            if node.internal && node.axis < 1
-                dump(node)
-                println("bad axis")
-                return false
-            end
-        end
-    end
-    for node in bvh.bvh.nodes
-        if node.internal && node.axis < 1
-            println("bad axis")
-            return false
-        end
-    end
-
-    true
 end
 
 end
