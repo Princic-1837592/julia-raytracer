@@ -305,8 +305,8 @@ function trace_path(
             distance = sample_transmittance(
                 vsdf.density,
                 intersection.distance,
-                rand1f(3),
-                rand1f(4),
+                rand1f(),
+                rand1f(),
             )
             weight =
                 weight .* eval_transmittance(vsdf.density, distance) /
@@ -355,7 +355,7 @@ function trace_path(
             end
 
             # handle opacity
-            if (material.opacity < 1 && rand1f(5) >= material.opacity)
+            if (material.opacity < 1 && rand1f() >= material.opacity)
                 if (opbounce > 128)
                     break
                 end
@@ -378,18 +378,12 @@ function trace_path(
             # next direction
             incoming = Vec3f(0, 0, 0)
             if (!is_delta(material))
-                if (rand1f(6) < 0.5f0)
+                if (rand1f() < 0.5f0)
                     incoming =
-                        sample_bsdfcos(material, normal, outgoing, rand1f(7), rand2f(8))
+                        sample_bsdfcos(material, normal, outgoing, rand1f(), rand2f())
                 else
-                    incoming = sample_lights(
-                        scene,
-                        lights,
-                        position,
-                        rand1f(9),
-                        rand1f(10),
-                        rand2f(11),
-                    )
+                    incoming =
+                        sample_lights(scene, lights, position, rand1f(), rand1f(), rand2f())
                 end
                 if (incoming == Vec3f(0, 0, 0))
                     break
@@ -412,7 +406,7 @@ function trace_path(
                     )
                 #                 @printf("weight %.5f %.5f %.5f\n", weight[1], weight[2], weight[3])
             else
-                incoming = sample_delta(material, normal, outgoing, rand1f(12))
+                incoming = sample_delta(material, normal, outgoing, rand1f())
                 weight =
                     weight .* eval_delta(material, normal, outgoing, incoming) /
                     sample_delta_pdf(material, normal, outgoing, incoming)
@@ -450,17 +444,11 @@ function trace_path(
 
             # next direction
             incoming = Vec3f(0, 0, 0)
-            if (rand1f(13) < 0.5f0)
-                incoming = sample_scattering(vsdf, outgoing, rand1f(14), rand2f(15))
+            if (rand1f() < 0.5f0)
+                incoming = sample_scattering(vsdf, outgoing, rand1f(), rand2f())
             else
-                incoming = sample_lights(
-                    scene,
-                    lights,
-                    position,
-                    rand1f(16),
-                    rand1f(17),
-                    rand2f(18),
-                )
+                incoming =
+                    sample_lights(scene, lights, position, rand1f(), rand1f(), rand2f())
             end
             if (incoming == Vec3f(0, 0, 0))
                 break
@@ -490,7 +478,7 @@ function trace_path(
         # russian roulette
         if (bounce > 3)
             rr_prob = min(0.99f0, maximum(weight))
-            if (rand1f(19) >= rr_prob)
+            if (rand1f() >= rr_prob)
                 break
             end
             weight *= 1 / rr_prob
@@ -594,7 +582,7 @@ function trace_naive(
         #             material.scattering[3]
         #         )
 
-        if (material.opacity < 1 && rand1f(3) >= material.opacity)
+        if (material.opacity < 1 && rand1f() >= material.opacity)
             if opbounce > 128
                 break
             end
@@ -614,7 +602,7 @@ function trace_naive(
 
         incoming = Vec3f(0, 0, 0)
         if (material.roughness != 0)
-            incoming = sample_bsdfcos(material, normal, outgoing, rand1f(4), rand2f(5))
+            incoming = sample_bsdfcos(material, normal, outgoing, rand1f(), rand2f())
             if (incoming == Vec3f(0, 0, 0))
                 break
             end
@@ -622,7 +610,7 @@ function trace_naive(
                 weight .* eval_bsdfcos(material, normal, outgoing, incoming) /
                 sample_bsdfcos_pdf(material, normal, outgoing, incoming)
         else
-            incoming = sample_delta(material, normal, outgoing, rand1f(6))
+            incoming = sample_delta(material, normal, outgoing, rand1f())
             if (incoming == Vec3f(0, 0, 0))
                 break
             end
@@ -637,7 +625,7 @@ function trace_naive(
 
         if (bounce > 3)
             rr_prob = min(0.99f0, maximum(weight))
-            if (rand1f(7) >= rr_prob)
+            if (rand1f() >= rr_prob)
                 break
             end
             weight *= 1 / rr_prob
@@ -680,8 +668,8 @@ function trace_sample(
 )
     camera = scene.cameras[params.camera]
     idx = state.width * j + i + 1
-    puv = rand2f(1)
-    luv = rand2f(2)
+    puv = rand2f()
+    luv = rand2f()
     ray = sample_camera(
         camera,
         Vec2i(i, j),
@@ -739,7 +727,6 @@ function trace_sample(
     #     )
 end
 
-#confirmed correct
 function sample_camera(
     camera::CameraData,
     ij::Vec2i,
