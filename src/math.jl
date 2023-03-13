@@ -36,6 +36,12 @@ Vec4b(rgba::RGBA) = Vec4b(
     UInt8(typemax(UInt8) * rgba.b),
     UInt8(typemax(UInt8) * rgba.alpha),
 )
+Vec4b(rgba::RGB) = Vec4b(
+    UInt8(typemax(UInt8) * rgba.r),
+    UInt8(typemax(UInt8) * rgba.g),
+    UInt8(typemax(UInt8) * rgba.b),
+    1,
+)
 
 const Frame3f = SVector{4,Vec3f}
 function Frame3f(array::AbstractVector{Float32})
