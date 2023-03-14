@@ -21,7 +21,7 @@ include("sceneio.jl")
 include("shading.jl")
 include("trace.jl")
 using .Utils: format_seconds
-using .Bvh: make_scene_bvh, verify_bvh
+using .Bvh: make_scene_bvh
 using .Cli: Params, parse_cli_args
 using .Scene: add_sky, find_camera
 using .SceneIO: load_scene, add_environment, save_image
