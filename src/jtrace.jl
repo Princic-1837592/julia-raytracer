@@ -30,9 +30,9 @@ using Printf: @printf
 
 function main(params::Params)
     if params.highqualitybvh
-        println("highqualitybvh is still not implemented")
+        println("high quality bvh is still not implemented")
     end
-    println("loading scene...")
+    @printf("loading scene %s...\n", params.scene)
     load_bs = time_ns()
     scene = load_scene(params.scene, params.noparallel)
     @printf("loaded scene in %s\n", format_seconds((time_ns() - load_bs) / 1e9))
@@ -54,7 +54,6 @@ function main(params::Params)
     println("making state...")
     state = make_trace_state(scene, params)
     println("tracing samples...")
-    render_ns = time_ns()
     stacks = params.noparallel ? 1 : Threads.nthreads()
     bvh_stacks = Vector{Vector{Int32}}(undef, stacks)
     bvh_sub_stacks = Vector{Vector{Int32}}(undef, stacks)
