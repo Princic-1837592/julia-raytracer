@@ -147,4 +147,15 @@ math_length(a::Vec3f) = sqrt(dot(a, a))
 
 distance_squared(a::Vec3f, b::Vec3f)::Float32 = dot(a .- b, a .- b)
 
+function lookat_frame(eye::Vec3f, center::Vec3f, up::Vec3f, inv_xz::Bool = false)::Frame3f
+    w = normalize(eye .- center)
+    u = normalize(cross(up, w))
+    v = normalize(cross(w, u))
+    if inv_xz
+        w = -w
+        u = -u
+    end
+    return Frame3f(u, v, w, eye)
+end
+
 end

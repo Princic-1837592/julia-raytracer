@@ -10,6 +10,7 @@ module Scene
 using StaticArrays: SVector
 using ..Math:
     Frame3f,
+    Mat3f,
     Vec2f,
     Vec3f,
     Vec4f,
@@ -24,7 +25,9 @@ using ..Math:
     transform_normal,
     orthonormalize,
     inverse,
-    pif
+    pif,
+    math_length,
+    lookat_frame
 using ..Color: byte_to_float, srgb_to_rgb
 using ..Shape: ShapeData
 using ..Geometry:
@@ -53,7 +56,7 @@ struct CameraData
     name         :: String
 
     function CameraData(json)
-        frame = Frame3f(Float32.(get(json, "frame", Vector())))
+        frame = Frame3f(Float32.(get(json, "frame", Vector{Float32}())))
         orthographic = get(json, "orthographic", false)
         lens = get(json, "lens", 0.050)
         film = get(json, "film", 0.036)
@@ -61,7 +64,23 @@ struct CameraData
         focus = get(json, "focus", 10000)
         aperture = get(json, "aperture", 0)
         name = get(json, "name", "")
-        #todo lookat
+        if haskey(json, "lookat")
+            lookat = Float32.(json["lookat"])
+            mat3f = Mat3f(
+                lookat[1],
+                lookat[2],
+                lookat[3],
+                lookat[4],
+                lookat[5],
+                lookat[6],
+                lookat[7],
+                lookat[8],
+                lookat[9],
+            )
+            frame = Frame3f(mat3f[1], mat3f[2], mat3f[3], frame[4])
+            focus = math_length(frame[1] .- frame[2])
+            frame = lookat_frame(frame[1], frame[2], frame[3])
+        end
         new(frame, orthographic, lens, film, aspect, focus, aperture, name)
     end
 end
