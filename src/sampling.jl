@@ -37,11 +37,7 @@ function sample_discrete(cdf::Vector{Float32}, r::Float32)::Int
 end
 
 sample_discrete_pdf(cdf::Vector{Float32}, idx::Int)::Float32 =
-    if (idx == 1)
-        cdf[1]
-    else
-        cdf[idx] - cdf[idx - 1]
-    end
+    idx == 1 ? cdf[1] : cdf[idx] - cdf[idx - 1]
 
 function upper_bound(cdf::Vector{Float32}, limit::Float32)::Int
     idx = 0

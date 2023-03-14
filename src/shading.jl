@@ -15,7 +15,7 @@ function eval_matte(color::Vec3f, normal::Vec3f, outgoing::Vec3f, incoming::Vec3
     if (dot(normal, incoming) * dot(normal, outgoing) <= 0)
         return Vec3f(0, 0, 0)
     end
-    color / pif * abs(dot(normal, incoming))
+    color ./ pif .* abs(dot(normal, incoming))
 end
 
 function sample_matte(color::Vec3f, normal::Vec3f, outgoing::Vec3f, rn::Vec2f)::Vec3f
@@ -53,8 +53,9 @@ function eval_glossy(
     F = fresnel_dielectric(ior, halfway, incoming)
     D = microfacet_distribution(roughness, up_normal, halfway)
     G = microfacet_shadowing(roughness, up_normal, halfway, outgoing, incoming)
-    color * (1 - F1) / pif * abs(dot(up_normal, incoming)) +
-    Vec3f(1, 1, 1) * F * D * G / (4 * dot(up_normal, outgoing) * dot(up_normal, incoming)) *
+    color .* (1 - F1) ./ pif .* abs(dot(up_normal, incoming)) .+
+    Vec3f(1, 1, 1) .* F .* D .* G ./
+    (4 * dot(up_normal, outgoing) * dot(up_normal, incoming)) .*
     abs(dot(up_normal, incoming))
 end
 
@@ -216,17 +217,12 @@ function sample_reflective(color::Vec3f, normal::Vec3f, outgoing::Vec3f)::Vec3f
     reflect(outgoing, up_normal)
 end
 
-function sample_reflective_pdf(
+sample_reflective_pdf(
     color::Vec3f,
     normal::Vec3f,
     outgoing::Vec3f,
     incoming::Vec3f,
-)::Float32
-    if (dot(normal, incoming) * dot(normal, outgoing) <= 0)
-        return 0
-    end
-    1
-end
+)::Float32 = dot(normal, incoming) * dot(normal, outgoing) <= 0 ? 0 : 1
 
 function eval_reflective(
     eta::Vec3f,
@@ -247,18 +243,13 @@ function sample_reflective(eta::Vec3f, etak::Vec3f, normal::Vec3f, outgoing::Vec
     reflect(outgoing, up_normal)
 end
 
-function sample_reflective_pdf(
+sample_reflective_pdf(
     eta::Vec3f,
     etak::Vec3f,
     normal::Vec3f,
     outgoing::Vec3f,
     incoming::Vec3f,
-)::Float32
-    if (dot(normal, incoming) * dot(normal, outgoing) <= 0)
-        return 0
-    end
-    1
-end
+)::Float32 = dot(normal, incoming) * dot(normal, outgoing) <= 0 ? 0 : 1
 
 function eval_gltfpbr(
     color::Vec3f,
@@ -502,7 +493,6 @@ function sample_refractive(
     entering = dot(normal, outgoing) >= 0
     up_normal = entering ? normal : -normal
     halfway = sample_microfacet(roughness, up_normal, rn)
-    # halfway = sample_microfacet(roughness, up_normal, outgoing, rn)
     if (rnl < fresnel_dielectric(entering ? ior : (1 / ior), halfway, outgoing))
         incoming = reflect(outgoing, halfway)
         if (!same_hemisphere(up_normal, outgoing, incoming))
@@ -533,15 +523,12 @@ function sample_refractive_pdf(
         halfway = normalize(incoming + outgoing)
         fresnel_dielectric(rel_ior, halfway, outgoing) *
         sample_microfacet_pdf(roughness, up_normal, halfway) /
-        #  sample_microfacet_pdf(roughness, up_normal, halfway, outgoing) /
         (4 * abs(dot(outgoing, halfway)))
     else
         halfway = -normalize(rel_ior * incoming + outgoing) * (entering ? 1.0f0 : -1.0f0)
-        # [Walter 2007] equation 17
         (1 - fresnel_dielectric(rel_ior, halfway, outgoing)) *
         sample_microfacet_pdf(roughness, up_normal, halfway) *
-        #  sample_microfacet_pdf(roughness, up_normal, halfway, outgoing) /
-        abs(dot(halfway, incoming)) /  # here we use incoming as from pbrt
+        abs(dot(halfway, incoming)) /
         ((rel_ior * dot(halfway, incoming) + dot(halfway, outgoing))^2.0f0)
     end
 end
@@ -625,7 +612,7 @@ function eval_translucent(
     if (dot(normal, incoming) * dot(normal, outgoing) >= 0)
         return Vec3f(0, 0, 0)
     end
-    color / pif * abs(dot(normal, incoming))
+    color ./ pif .* abs(dot(normal, incoming))
 end
 
 function sample_translucent(color::Vec3f, normal::Vec3f, outgoing::Vec3f, rn::Vec2f)::Vec3f
@@ -642,20 +629,12 @@ function sample_translucent_pdf(
     if dot(normal, incoming) * dot(normal, outgoing) >= 0
         return 0
     end
-    up_normal = if dot(normal, outgoing) <= 0
-        -normal
-    else
-        normal
-    end
+    up_normal = dot(normal, outgoing) <= 0 ? -normal : normal
     sample_hemisphere_cos_pdf(-up_normal, incoming)
 end
 
 eval_passthrough(color::Vec3f, normal::Vec3f, outgoing::Vec3f, incoming::Vec3f)::Vec3f =
-    if (dot(normal, incoming) * dot(normal, outgoing) >= 0)
-        Vec3f(0, 0, 0)
-    else
-        Vec3f(1, 1, 1)
-    end
+    (dot(normal, incoming) * dot(normal, outgoing) >= 0) ? Vec3f(0, 0, 0) : Vec3f(1, 1, 1)
 
 sample_passthrough(color::Vec3f, normal::Vec3f, outgoing::Vec3f)::Vec3f = -outgoing
 
@@ -664,12 +643,7 @@ sample_passthrough_pdf(
     normal::Vec3f,
     outgoing::Vec3f,
     incoming::Vec3f,
-)::Float32 =
-    if (dot(normal, incoming) * dot(normal, outgoing) >= 0)
-        return 0
-    else
-        return 1
-    end
+)::Float32 = dot(normal, incoming) * dot(normal, outgoing) >= 0 ? 0 : 1
 
 mfp_to_transmission(mfp::Vec3f, depth::Float32)::Vec3f = exp(-depth / mfp)
 
@@ -691,11 +665,8 @@ sample_transmittance_pdf(
     distance::Float32,
     max_distance::Float32,
 )::Float32 =
-    if (distance < max_distance)
-        sum(density .* exp.(-density .* distance)) / 3
-    else
-        sum(exp.(-density .* max_distance)) / 3
-    end
+    distance < max_distance ? sum(density .* exp.(-density .* distance)) / 3 :
+    sum(exp.(-density .* max_distance)) / 3
 
 function eval_phasefunction(anisotropy::Float32, outgoing::Vec3f, incoming::Vec3f)::Float32
     cosine = -dot(outgoing, incoming)
@@ -722,8 +693,6 @@ sample_phasefunction_pdf(anisotropy::Float32, outgoing::Vec3f, incoming::Vec3f):
     eval_phasefunction(anisotropy, outgoing, incoming)
 
 function fresnel_dielectric(eta::Float32, normal::Vec3f, outgoing::Vec3f)::Float32
-    # Implementation from
-    # https://seblagarde.wordpress.com/2013/04/29/memo-on-fresnel-equations/
     cosw = abs(dot(normal, outgoing))
 
     sin2 = 1 - cosw * cosw
@@ -745,22 +714,21 @@ function fresnel_dielectric(eta::Float32, normal::Vec3f, outgoing::Vec3f)::Float
 end
 
 function sample_hemisphere_cos(normal::Vec3f, ruv::Vec2f)::Vec3f
-    z = sqrt(ruv.y)
+    z = sqrt(ruv[2])
     r = sqrt(1 - z * z)
-    phi = 2 * pif * ruv.x
+    phi = 2 * pif * ruv[1]
     local_direction = Vec3f(r * cos(phi), r * sin(phi), z)
     transform_direction(basis_fromz(normal), local_direction)
 end
 
 function basis_fromz(v::Vec3f)::Mat3f
-    # https://graphics.pixar.com/library/OrthonormalB/paper.pdf
     z = normalize(v)
-    sign = copysign(1.0f0, z.z)
-    a = -1.0f0 / (sign + z.z)
-    b = z.x * z.y * a
-    x = Vec3f(1.0f0 + sign * z.x * z.x * a, sign * b, -sign * z.x)
-    y = Vec3f(b, sign + z.y * z.y * a, -z.y)
-    return Mat3f(x, y, z)
+    sign = copysign(1.0f0, z[3])
+    a = -1.0f0 / (sign + z[3])
+    b = z[1] * z[2] * a
+    x = Vec3f(1.0f0 + sign * z[1] * z[1] * a, sign * b, -sign * z[1])
+    y = Vec3f(b, sign + z[2] * z[2] * a, -z[2])
+    Mat3f(x, y, z)
 end
 
 function microfacet_distribution(
@@ -775,12 +743,10 @@ function microfacet_distribution(
     end
     roughness2 = roughness * roughness
     cosine2 = cosine * cosine
-    if (ggx)
-        roughness2 /
-        (pif * (cosine2 * roughness2 + 1 - cosine2) * (cosine2 * roughness2 + 1 - cosine2))
-    else
-        exp((cosine2 - 1) / (roughness2 * cosine2)) / (pif * roughness2 * cosine2 * cosine2)
-    end
+    ggx ?
+    roughness2 /
+    (pif * (cosine2 * roughness2 + 1 - cosine2) * (cosine2 * roughness2 + 1 - cosine2)) :
+    exp((cosine2 - 1) / (roughness2 * cosine2)) / (pif * roughness2 * cosine2 * cosine2)
 end
 
 function microfacet_shadowing1(
@@ -797,7 +763,7 @@ function microfacet_shadowing1(
     end
     roughness2 = roughness * roughness
     cosine2 = cosine * cosine
-    if (ggx)
+    if ggx
         2 * abs(cosine) / (abs(cosine) + sqrt(cosine2 - roughness2 * cosine2 + roughness2))
     else
         ci = abs(cosine) / (roughness * sqrt(1 - cosine2))
@@ -824,13 +790,13 @@ function sample_microfacet(
     rn::Vec2f,
     ggx::Bool = true,
 )::Vec3f
-    phi = 2 * pif * rn.x
+    phi = 2 * pif * rn[1]
     theta = 0.0f0
     if (ggx)
-        theta = atan(roughness * sqrt(rn.y / (1 - rn.y)))
+        theta = atan(roughness * sqrt(rn[2] / (1 - rn[2])))
     else
         roughness2 = roughness * roughness
-        theta = atan(sqrt(-roughness2 * log(1 - rn.y)))
+        theta = atan(sqrt(-roughness2 * log(1 - rn[2])))
     end
     local_half_vector = Vec3f(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta))
     transform_direction(basis_fromz(normal), local_half_vector)

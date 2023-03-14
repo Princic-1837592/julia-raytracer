@@ -68,12 +68,12 @@ Mat3f(xx, xy, xz, yx, yy, yz, zx, zy, zz) =
 
 dot(a::Vec3f, b::Vec3f) = sum(a .* b)
 
-function normalize(a::Vec3f)
+function normalize(a::Vec3f)::Vec3f
     l = sqrt(dot(a, a))
     if l != 0
-        return a / l
+        a / l
     else
-        return a
+        a
     end
 end
 
@@ -86,11 +86,11 @@ transform_vector(a::Mat3f, b::Vec3f)::Vec3f = a * b
 
 transform_direction(a::Frame3f, b::Vec3f)::Vec3f = normalize(transform_vector(a, b))
 
-lerp(a::Vec4f, b::Vec4f, u::Float32) = a * (1 - u) + b * u
+lerp(a::Vec4f, b::Vec4f, u::Float32) = @. a * (1 - u) + b * u
 
-lerp(a::Vec3f, b::Vec3f, u::Float32) = a * (1 - u) + b * u
+lerp(a::Vec3f, b::Vec3f, u::Float32) = @. a * (1 - u) + b * u
 
-lerp(a::Vec3f, b::Vec3f, u::Vec3f) = a * (1 - u) + b * u
+lerp(a::Vec3f, b::Vec3f, u::Vec3f) = @. a * (1 - u) + b * u
 
 function inverse(frame::Frame3f, non_rigid::Bool = false)::Frame3f
     if non_rigid
@@ -122,13 +122,13 @@ transpose(m::Mat3f)::Mat3f =
     Mat3f(m[1][1], m[2][1], m[3][1], m[1][2], m[2][2], m[3][2], m[1][3], m[2][3], m[3][3])
 
 transform_normal(a::Frame3f, b::Vec3f, non_rigid::Bool = false) =
-    if (non_rigid)
+    if non_rigid
         transform_normal(rotation(a), b)
     else
         normalize(transform_vector(a, b))
     end
 
-orthonormalize(a::Vec3f, b::Vec3f)::Vec3f = normalize(a - b * dot(a, b))
+orthonormalize(a::Vec3f, b::Vec3f)::Vec3f = normalize(a .- b .* dot(a, b))
 
 transform_direction(a::Mat3f, b::Vec3f) = normalize(transform_vector(a, b))
 
@@ -137,7 +137,7 @@ reflect(w::Vec3f, n::Vec3f)::Vec3f = -w + 2 * dot(n, w) * n
 function refract(w::Vec3f, n::Vec3f, inv_eta::Float32)::Vec3f
     cosine = dot(n, w)
     k = 1 + inv_eta * inv_eta * (cosine * cosine - 1)
-    if (k < 0)
+    if k < 0
         return Vec3f(0, 0, 0)
     end
     return -w * inv_eta + (inv_eta * cosine - sqrt(k)) * n

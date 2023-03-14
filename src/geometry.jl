@@ -94,8 +94,8 @@ merge_bbox3f(bbox1::Bbox3f, bbox2::Bbox3f)::Bbox3f =
 center(bbox::Bbox3f)::Vec3f = (bbox.min + bbox.max) / 2
 
 function intersect_bbox(ray::Ray3f, ray_dinv::Vec3f, bbox::Bbox3f)::Bool
-    it_min = (bbox.min - ray.o) .* ray_dinv
-    it_max = (bbox.max - ray.o) .* ray_dinv
+    it_min = @. (bbox.min - ray.o) * ray_dinv
+    it_max = @. (bbox.max - ray.o) * ray_dinv
     tmin = min.(it_min, it_max)
     tmax = max.(it_min, it_max)
     t0 = max(maximum(tmin), ray.tmin)
@@ -114,13 +114,13 @@ function intersect_point(ray::Ray3f, p::Vec3f, r::Float32)::PrimIntersection
     w = p .- ray.o
     t = dot(w, ray.d) / dot(ray.d, ray.d)
 
-    if (t < ray.tmin || t > ray.tmax)
+    if t < ray.tmin || t > ray.tmax
         return PrimIntersection()
     end
 
     rp = @. ray.o + ray.d * t
     prp = p .- rp
-    if (dot(prp, prp) > r * r)
+    if dot(prp, prp) > r * r
         return PrimIntersection()
     end
 
@@ -145,14 +145,14 @@ function intersect_line(
     e = dot(v, w)
     det = a * c - b * b
 
-    if (det == 0)
+    if det == 0
         return PrimIntersection()
     end
 
     t = (b * e - c * d) / det
     s = (a * e - b * d) / det
 
-    if (t < ray.tmin || t > ray.tmax)
+    if t < ray.tmin || t > ray.tmax
         return PrimIntersection()
     end
 
@@ -160,11 +160,11 @@ function intersect_line(
 
     pr = @. ray.o + ray.d * t
     pl = @. p1 + (p2 - p1) * s
-    prl = @. pr - pl
+    prl = pr .- pl
 
     d2 = dot(prl, prl)
     r = r1 * (1 - s) + r2 * s
-    if (d2 > r * r)
+    if d2 > r * r
         return PrimIntersection()
     end
 
@@ -177,25 +177,25 @@ function intersect_sphere(ray::Ray3f, p::Vec3f, r::Float32)::PrimIntersection
     c = dot(ray.o .- p, ray.o .- p) - r * r
 
     dis = b * b - 4 * a * c
-    if (dis < 0)
+    if dis < 0
         return PrimIntersection()
     end
 
     t = (-b - sqrt(dis)) / (2 * a)
 
-    if (t < ray.tmin || t > ray.tmax)
+    if t < ray.tmin || t > ray.tmax
         return PrimIntersection()
     end
 
     t = (-b + sqrt(dis)) / (2 * a)
 
-    if (t < ray.tmin || t > ray.tmax)
+    if t < ray.tmin || t > ray.tmax
         return PrimIntersection()
     end
 
     plocal = ((ray.o + ray.d * t) - p) / r
     u = atan(plocal[2], plocal[1]) / (2 * pif)
-    if (u < 0)
+    if u < 0
         u += 1
     end
     v = acos(clamp(plocal[3], -1.0f0, 1.0f0)) / pif
@@ -210,25 +210,25 @@ function intersect_triangle(ray::Ray3f, p1::Vec3f, p2::Vec3f, p3::Vec3f)::PrimIn
     pvec = cross(ray.d, edge2)
     det = dot(edge1, pvec)
 
-    if (det == 0)
+    if det == 0
         return PrimIntersection()
     end
     inv_det::Float32 = 1.0f0 / det
 
     tvec = ray.o .- p1
     u = dot(tvec, pvec) * inv_det
-    if (u < 0 || u > 1)
+    if u < 0 || u > 1
         return PrimIntersection()
     end
 
     qvec = cross(tvec, edge1)
     v = dot(ray.d, qvec) * inv_det
-    if (v < 0 || u + v > 1)
+    if v < 0 || u + v > 1
         return PrimIntersection()
     end
 
     t = dot(edge2, qvec) * inv_det
-    if (t < ray.tmin || t > ray.tmax)
+    if t < ray.tmin || t > ray.tmax
         return PrimIntersection()
     end
 
@@ -242,12 +242,12 @@ function intersect_quad(
     p3::Vec3f,
     p4::Vec3f,
 )::PrimIntersection
-    if (p3 == p4)
+    if p3 == p4
         return intersect_triangle(ray, p1, p2, p4)
     end
     isec1 = intersect_triangle(ray, p1, p2, p4)
     isec2 = intersect_triangle(ray, p3, p4, p2)
-    if (isec2.hit)
+    if isec2.hit
         isec2 = PrimIntersection(1 .- isec2.uv, isec2.distance, isec2.hit)
     end
     if isec1.distance < isec2.distance
@@ -276,7 +276,7 @@ interpolate_triangle(p1, p2, p3, uv::Vec2f) =
     @. p1 * (1 - uv[1] - uv[2]) + p2 * uv[1] + p3 * uv[2]
 
 interpolate_quad(p1, p2, p3, p4, uv::Vec2f) =
-    if (uv[1] + uv[2] <= 1)
+    if uv[1] + uv[2] <= 1
         interpolate_triangle(p1, p2, p4, uv)
     else
         interpolate_triangle(p3, p4, p2, 1 .- uv)
@@ -296,7 +296,7 @@ function triangle_tangents_fromuv(
     t = Vec2f(uv2[2] - uv1[2], uv3[2] - uv1[2])
     div = s[1] * t[2] - s[2] * t[1]
 
-    if (div != 0)
+    if div != 0
         tu =
             Vec3f(
                 t[2] * p[1] - t[1] * q[1],
@@ -326,7 +326,7 @@ function quad_tangents_fromuv(
     uv4::Vec2f,
     current_uv::Vec2f,
 )::Tuple{Vec3f,Vec3f}
-    if (current_uv[1] + current_uv[2] <= 1)
+    if current_uv[1] + current_uv[2] <= 1
         triangle_tangents_fromuv(p1, p2, p4, uv1, uv2, uv4)
     else
         triangle_tangents_fromuv(p3, p4, p2, uv3, uv4, uv2)

@@ -421,7 +421,7 @@ function eval_shading_position(
     outgoing::Vec3f,
 )::Vec3f
     shape = scene.shapes[instance.shape]
-    if (length(shape.triangles) != 0 || length(shape.quads) != 0)
+    if length(shape.triangles) != 0 || length(shape.quads) != 0
         return eval_position(scene, instance, element, uv)
     elseif (length(shape.lines) != 0)
         return eval_position(scene, instance, element, uv)
@@ -439,7 +439,7 @@ function eval_position(
     uv::Vec2f,
 )::Vec3f
     shape = scene.shapes[instance.shape]
-    if (length(shape.triangles) != 0)
+    if length(shape.triangles) != 0
         t = shape.triangles[element]
         return transform_point(
             instance.frame,
@@ -630,9 +630,9 @@ function eval_material(
     type = material.type
     emission = material.emission .* Vec3f(emission_tex)
     color = material.color .* Vec3f(color_tex) .* Vec3f(color_shp)
-    opacity = material.opacity * color_tex.w * color_shp.w
-    metallic = material.metallic * roughness_tex.z
-    roughness = material.roughness * roughness_tex.y
+    opacity = material.opacity * color_tex[4] * color_shp[4]
+    metallic = material.metallic * roughness_tex[3]
+    roughness = material.roughness * roughness_tex[2]
     roughness = roughness * roughness
     ior = material.ior
     scattering = material.scattering .* Vec3f(scattering_tex)
@@ -649,7 +649,7 @@ function eval_material(
         density = Vec3f(0, 0, 0)
     end
 
-    if (type == matte || type == gltfpbr || type == glossy)
+    if type == matte || type == gltfpbr || type == glossy
         roughness = clamp(roughness, min_roughness, 1.0f0)
     elseif (material.type == volumetric)
         roughness = 0.0f0
@@ -680,7 +680,7 @@ function eval_texture(
     no_interpolation::Bool = false,
     clamp_to_edge::Bool = false,
 )::Vec4f
-    if (texture == invalid_id)
+    if texture == invalid_id
         Vec4f(1, 1, 1, 1)
     else
         eval_texture(scene.textures[texture], uv, ldr_as_linear, no_interpolation)
@@ -694,10 +694,10 @@ function eval_color(
     uv::Vec2f,
 )::Vec4f
     shape = scene.shapes[instance.shape]
-    if (length(shape.colors) == 0)
+    if length(shape.colors) == 0
         return Vec4f(1, 1, 1, 1)
     end
-    if (length(shape.triangles) != 0)
+    if length(shape.triangles) != 0
         t = shape.triangles[element]
         interpolate_triangle(shape.colors[t[1]], shape.colors[t[2]], shape.colors[t[3]], uv)
     elseif (length(shape.quads) != 0)
@@ -732,7 +732,6 @@ function eval_normalmap(
     if material.normal_tex != invalid_id &&
        (length(shape.triangles) != 0 || length(shape.quads) != 0)
         normal_tex = scene.textures[material.normal_tex]
-        #todo check order of operations
         normalmap = Vec3f(eval_texture(normal_tex, texcoord, false)) .* 2 .- 1
         (tu, tv) = eval_element_tangents(scene, instance, element)
         frame = Frame3f(tu, tv, normal, Vec3f(0, 0, 0))
@@ -758,7 +757,7 @@ function eval_texcoord(
     uv::Vec2f,
 )::Vec2f
     shape = scene.shapes[instance.shape]
-    if (length(shape.texcoords) == 0)
+    if length(shape.texcoords) == 0
         return uv
     end
     if (length(shape.triangles) != 0)
@@ -795,7 +794,7 @@ function eval_texture(
     no_interpolation::Bool = false,
     clamp_to_edge::Bool = false,
 )::Vec4f
-    if (texture.width == 0 || texture.height == 0)
+    if texture.width == 0 || texture.height == 0
         return Vec4f(0, 0, 0, 0)
     end
 
@@ -807,7 +806,6 @@ function eval_texture(
         s = clamp(uv[1], 0.0f0, 1.0f0) * size[1]
         t = clamp(uv[2], 0.0f0, 1.0f0) * size[2]
     else
-        #todo check fmod
         s = mod1(uv[1], 1.0f0) * size[1]
         if (s < 0)
             s += size[1]
@@ -847,11 +845,7 @@ function lookup_texture(
     else
         color = byte_to_float(texture.pixelsb[j * texture.width + i + 1])
     end
-    if (as_linear && !texture.linear)
-        srgb_to_rgb(color)
-    else
-        color
-    end
+    as_linear && !texture.linear ? srgb_to_rgb(color) : color
 end
 
 function eval_element_tangents(

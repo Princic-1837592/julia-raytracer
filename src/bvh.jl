@@ -465,7 +465,7 @@ function intersect_instance_bvh(
         find_any,
         sub_stack,
     )
-    if (!intersection.hit)
+    if !intersection.hit
         return SceneIntersection()
     end
     SceneIntersection(

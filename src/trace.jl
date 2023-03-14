@@ -120,7 +120,7 @@ function make_trace_lights(scene::SceneData, params::Params)::TraceLights
     for handle in 1:length(scene.instances)
         instance = scene.instances[handle]
         material = scene.materials[instance.material]
-        if (material.emission == Vec3f(0, 0, 0))
+        if material.emission == Vec3f(0, 0, 0)
             continue
         end
         shape = scene.shapes[instance.shape]
@@ -696,13 +696,13 @@ function trace_sample(
     weight = 1.0f0 / (sample + 1)
     if hit
         state.image[idx] =
-            lerp(state.image[idx], Vec4f(radiance.x, radiance.y, radiance.z, 1), weight)
+            lerp(state.image[idx], Vec4f(radiance[1], radiance[2], radiance[3], 1), weight)
         state.albedo[idx] = lerp(state.albedo[idx], albedo, weight)
         state.normal[idx] = lerp(state.normal[idx], normal, weight)
         state.hits[idx] += 1
     elseif !params.envhidden && length(scene.environments) != 0
         state.image[idx] =
-            lerp(state.image[idx], Vec4f(radiance.x, radiance.y, radiance.z, 1), weight)
+            lerp(state.image[idx], Vec4f(radiance[1], radiance[2], radiance[3], 1), weight)
         state.albedo[idx] = lerp(state.albedo[idx], Vec3f(1, 1, 1), weight)
         state.normal[idx] = lerp(state.normal[idx], -ray.d, weight)
         state.hits[idx] += 1
