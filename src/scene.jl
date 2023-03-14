@@ -94,7 +94,22 @@ struct InstanceData
         frame = Frame3f(Float32.(get(json, "frame", Vector{Float32}())))
         shape = get(json, "shape", invalid_id - 1) + 1
         material = get(json, "material", invalid_id - 1) + 1
-        #todo lookat
+        if haskey(json, "lookat")
+            lookat = Float32.(json["lookat"])
+            mat3f = Mat3f(
+                lookat[1],
+                lookat[2],
+                lookat[3],
+                lookat[4],
+                lookat[5],
+                lookat[6],
+                lookat[7],
+                lookat[8],
+                lookat[9],
+            )
+            frame = Frame3f(mat3f[1], mat3f[2], mat3f[3], frame[4])
+            frame = lookat_frame(frame[1], frame[2], frame[3], true)
+        end
         new(frame, shape, material)
     end
 end
@@ -108,7 +123,22 @@ struct EnvironmentData
         frame = Frame3f(Float32.(get(json, "frame", Vector{Float32}(undef, 0))))
         emission = get(json, "emission", Vec3f())
         emission_tex = get(json, "emission_tex", invalid_id - 1) + 1
-        #todo lookat
+        if haskey(json, "lookat")
+            lookat = Float32.(json["lookat"])
+            mat3f = Mat3f(
+                lookat[1],
+                lookat[2],
+                lookat[3],
+                lookat[4],
+                lookat[5],
+                lookat[6],
+                lookat[7],
+                lookat[8],
+                lookat[9],
+            )
+            frame = Frame3f(mat3f[1], mat3f[2], mat3f[3], frame[4])
+            frame = lookat_frame(frame[1], frame[2], frame[3], true)
+        end
         new(frame, emission, emission_tex)
     end
 end
