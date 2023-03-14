@@ -75,6 +75,10 @@ cli_parser = ArgParseSettings()
     help = "disable caustics"
     arg_type = Bool
     default = false
+    "--batch"
+    help = "run samples in batches"
+    arg_type = Int
+    default = 1
 end
 
 const SAMPLER_TYPES = ["path", "naive"]
@@ -96,6 +100,7 @@ mutable struct Params
     sampler        :: Int
     clamp          :: Int
     nocaustics     :: Bool
+    batch          :: Int
 
     function Params(
         scene::String;
@@ -114,6 +119,7 @@ mutable struct Params
         sampler = "path",
         clamp = 10.0f0,
         nocaustics = false,
+        batch = 1,
     )
         sidx = indexin([sampler], SAMPLER_TYPES)
         sampler = if sidx[1] == nothing
@@ -138,6 +144,7 @@ mutable struct Params
             sampler,
             clamp,
             nocaustics,
+            batch,
         )
     end
 
@@ -165,6 +172,7 @@ mutable struct Params
             sampler,
             params["clamp"],
             params["nocaustics"],
+            params["batch"],
         )
     end
 end

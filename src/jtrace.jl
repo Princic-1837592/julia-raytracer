@@ -62,21 +62,23 @@ function main(params::Params)
         bvh_stacks[tid] = Vector{Int32}(undef, 32)
         bvh_sub_stacks[tid] = Vector{Int32}(undef, 32)
     end
-    for _sample in 1:(params.samples)
-        sample_ns = time_ns()
+    render_ns = time_ns()
+    for _sample in 1:(params.batch):(params.samples)
+        batch_ns = time_ns()
         trace_samples(state, scene, bvh, lights, params, bvh_stacks, bvh_sub_stacks)
         now = time_ns()
         @printf(
             "sample %3d/%3d in %s ETC: %s\n",
             state.samples,
             params.samples,
-            format_seconds((now - sample_ns) / 1e9),
+            format_seconds((now - batch_ns) / 1e9),
             format_seconds(
                 (now - render_ns) / 1e9 / state.samples * (params.samples - state.samples),
             ),
         )
     end
-    @printf("rendered in %.3f s\n", (time_ns() - render_ns) / 1e9)
+    render_ns = (time_ns() - render_ns) / 1e9
+    @printf("rendered in %s (%.3fs)\n", format_seconds(render_ns), render_ns)
     println("saving image...")
     image = get_image(state)
     save_image(params.output, image)

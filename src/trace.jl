@@ -224,44 +224,49 @@ function trace_samples(
     if state.samples >= params.samples
         return
     end
+    target = min(state.samples + params.batch, params.samples)
     if params.noparallel
         bvh_stack = bvh_stacks[1]
         bvh_sub_stack = bvh_sub_stacks[1]
         for j in 0:(state.height - 1)
             for i in 0:(state.width - 1)
-                trace_sample(
-                    state,
-                    scene,
-                    bvh,
-                    lights,
-                    i,
-                    j,
-                    state.samples,
-                    params,
-                    bvh_stack,
-                    bvh_sub_stack,
-                )
+                for sample in (state.samples):(target - 1)
+                    trace_sample(
+                        state,
+                        scene,
+                        bvh,
+                        lights,
+                        i,
+                        j,
+                        sample,
+                        params,
+                        bvh_stack,
+                        bvh_sub_stack,
+                    )
+                end
             end
         end
     else
         Threads.@threads for j in 0:(state.height - 1)
             Threads.@threads for i in 0:(state.width - 1)
-                trace_sample(
-                    state,
-                    scene,
-                    bvh,
-                    lights,
-                    i,
-                    j,
-                    state.samples,
-                    params,
-                    bvh_stacks[Threads.threadid()],
-                    bvh_sub_stacks[Threads.threadid()],
-                )
+                for sample in (state.samples):(target - 1)
+                    trace_sample(
+                        state,
+                        scene,
+                        bvh,
+                        lights,
+                        i,
+                        j,
+                        sample,
+                        params,
+                        bvh_stacks[Threads.threadid()],
+                        bvh_sub_stacks[Threads.threadid()],
+                    )
+                end
             end
         end
     end
-    state.samples += 1
+    state.samples = target
 end
 
 function trace_path(
