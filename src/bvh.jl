@@ -164,10 +164,7 @@ function make_bvh(bboxes::Vector{Bbox3f}, high_quality::Bool)::BvhTree
         bvh.nodes[node_id] = node
         if right - left + 1 > BVH_MAX_PRIMS
             mid, axis = if high_quality
-                #todo method does not exist yet
-                #split_sah(centers, bboxes, left, right)
-                error("not implemented")
-                #                 (1, 1)
+                split_sah(bvh.primitives, bboxes, centers, left, right)
             else
                 split_middle(bvh.primitives, bboxes, centers, left, right)
             end
