@@ -288,13 +288,10 @@ function trace_path(
     hit_albedo = Vec3f(0, 0, 0)
     hit_normal = Vec3f(0, 0, 0)
     opbounce = 0
-    #     @printf("ray %.5f %.5f %.5f\n", ray.d[1], ray.d[2], ray.d[3])
 
-    # trace  path
     bounce = -1
     while bounce < params.bounces
         bounce += 1
-        # intersect next point
         intersection = intersect_scene_bvh(bvh, scene, ray, false, bvh_stack, bvh_sub_stack)
         if (!intersection.hit)
             if (bounce > 0 || !params.envhidden)
@@ -303,7 +300,6 @@ function trace_path(
             break
         end
 
-        # handle transmission if inside a volume
         in_volume = false
         if (cur_volume != 0)
             vsdf = volume_stack[cur_volume]
@@ -326,9 +322,7 @@ function trace_path(
             )
         end
 
-        # switch between surface and volume
         if (!in_volume)
-            # prepare shading point
             outgoing = -ray.d
             position = eval_shading_position(
                 scene,
@@ -337,7 +331,6 @@ function trace_path(
                 intersection.uv,
                 outgoing,
             )
-            #confirmed correct
             normal = eval_shading_normal(
                 scene,
                 scene.instances[intersection.instance],
@@ -345,7 +338,6 @@ function trace_path(
                 intersection.uv,
                 outgoing,
             )
-            #confirmed correct
             material = eval_material(
                 scene,
                 scene.instances[intersection.instance],
@@ -353,13 +345,11 @@ function trace_path(
                 intersection.uv,
             )
 
-            # correct roughness
             if (params.nocaustics)
                 max_roughness = max(material.roughness, max_roughness)
                 material = MaterialPoint(material, max_roughness)
             end
 
-            # handle opacity
             if (material.opacity < 1 && rand1f() >= material.opacity)
                 if (opbounce > 128)
                     break
@@ -370,17 +360,14 @@ function trace_path(
                 continue
             end
 
-            # set hit variables
             if (bounce == 0)
                 hit = true
                 hit_albedo = material.color
                 hit_normal = normal
             end
 
-            # accumulate emission
             radiance += weight .* eval_emission(material, normal, outgoing)
 
-            # next direction
             incoming = Vec3f(0, 0, 0)
             if (!is_delta(material))
                 if (rand1f() < 0.5f0)
@@ -393,10 +380,6 @@ function trace_path(
                 if (incoming == Vec3f(0, 0, 0))
                     break
                 end
-                #                 @printf("incoming %.5f %.5f %.5f ", incoming[1], incoming[2], incoming[3])
-                #                 @printf("weight %.5f %.5f %.5f\n", weight[1], weight[2], weight[3])
-                #                 @printf("normal %.5f %.5f %.5f ", normal[1], normal[2], normal[3])
-                #                 @printf("outgoing %.5f %.5f %.5f\n", outgoing[1], outgoing[2], outgoing[3])
                 weight =
                     weight .* eval_bsdfcos(material, normal, outgoing, incoming) / (
                         0.5f0 * sample_bsdfcos_pdf(material, normal, outgoing, incoming) +
@@ -409,7 +392,6 @@ function trace_path(
                             bvh_sub_stack,
                         )
                     )
-                #                 @printf("weight %.5f %.5f %.5f\n", weight[1], weight[2], weight[3])
             else
                 incoming = sample_delta(material, normal, outgoing, rand1f())
                 weight =
@@ -417,7 +399,6 @@ function trace_path(
                     sample_delta_pdf(material, normal, outgoing, incoming)
             end
 
-            # update volume stack
             if (
                 is_volumetric(scene, scene.instances[intersection.instance]) &&
                 dot(normal, outgoing) * dot(normal, incoming) < 0
@@ -436,18 +417,12 @@ function trace_path(
                 end
             end
 
-            # setup next iteration
             ray = Ray3f(position, incoming)
         else
-            # prepare shading point
             outgoing = -ray.d
             position = ray.o + ray.d * intersection.distance
             vsdf = volume_stack[cur_volume]
 
-            # accumulate emission
-            # radiance += weight * eval_volemission(emission, outgoing)
-
-            # next direction
             incoming = Vec3f(0, 0, 0)
             if (rand1f() < 0.5f0)
                 incoming = sample_scattering(vsdf, outgoing, rand1f(), rand2f())
@@ -471,16 +446,13 @@ function trace_path(
                     )
                 )
 
-            # setup next iteration
             ray = Ray3f(position, incoming)
         end
 
-        # check weight
         if (weight == Vec3f(0, 0, 0) || !all(isfinite.(weight)))
             break
         end
 
-        # russian roulette
         if (bounce > 3)
             rr_prob = min(0.99f0, maximum(weight))
             if (rand1f() >= rr_prob)
@@ -489,12 +461,6 @@ function trace_path(
             weight *= 1 / rr_prob
         end
     end
-    #     @printf("ray %.5f %.5f %.5f\n", ray.d[1], ray.d[2], ray.d[3])
-    #     @printf("h %d ", hit)
-    #     @printf("r %.5f %.5f %.5f\n", radiance[1], radiance[2], radiance[3])
-    #     @printf("a %.5f %.5f %.5f ", hit_albedo[1], hit_albedo[2], hit_albedo[3])
-    #     @printf("n %.5f %.5f %.5f ", hit_normal[1], hit_normal[2], hit_normal[3])
-    #     @printf("w %.5f %.5f %.5f\n", weight[1], weight[2], weight[3])
 
     return (radiance, hit, hit_albedo, hit_normal)
 end
@@ -514,23 +480,19 @@ function trace_naive(
     hit_albedo = Vec3f(0, 0, 0)
     hit_normal = Vec3f(0, 0, 0)
     opbounce = 0
-    #     @printf("ray %.5f %.5f %.5f\n", ray.d[1], ray.d[2], ray.d[3])
 
     bounce = -1
     while bounce < params.bounces
         bounce += 1
         intersection = intersect_scene_bvh(bvh, scene, ray, false, bvh_stack, bvh_sub_stack)
-        #         @printf("bounce: %d hit: %d\n", bounce, intersection.hit)
         if !intersection.hit
             if bounce > 0 || !params.envhidden
                 radiance += weight .* eval_environment(scene, ray.d)
             end
             break
         end
-        #         @printf("radiance: %.5f %.5f %.5f ", radiance[1], radiance[2], radiance[3])
 
         outgoing = -ray.d
-        #confirmed correct
         position = eval_shading_position(
             scene,
             scene.instances[intersection.instance],
@@ -538,7 +500,6 @@ function trace_naive(
             intersection.uv,
             outgoing,
         )
-        #confirmed correct
         normal = eval_shading_normal(
             scene,
             scene.instances[intersection.instance],
@@ -546,46 +507,12 @@ function trace_naive(
             intersection.uv,
             outgoing,
         )
-        #confirmed correct
         material = eval_material(
             scene,
             scene.instances[intersection.instance],
             intersection.element,
             intersection.uv,
         )
-        #         @printf("position: %.5f %.5f %.5f ", position[1], position[2], position[3])
-        #         @printf("normal: %.5f %.5f %.5f\n", normal[1], normal[2], normal[3])
-        #         @printf("%s\n", material.type)
-        #         @printf(
-        #             "emission: %.5f %.5f %.5f ",
-        #             material.emission[1],
-        #             material.emission[2],
-        #             material.emission[3]
-        #         )
-        #         @printf(
-        #             "color: %.5f %.5f %.5f\n",
-        #             material.color[1],
-        #             material.color[2],
-        #             material.color[3]
-        #         )
-        #         @printf("opacity: %.5f ", material.opacity)
-        #         @printf("roughness: %.5f ", material.roughness)
-        #         @printf("metallic: %.5f ", material.metallic)
-        #         @printf("ior: %.5f ", material.ior)
-        #         @printf("scanisotropy: %.5f ", material.scanisotropy)
-        #         @printf("trdepth: %.5f\n", material.trdepth)
-        #         @printf(
-        #             "density: %.5f %.5f %.5f ",
-        #             material.density[1],
-        #             material.density[2],
-        #             material.density[3]
-        #         )
-        #         @printf(
-        #             "scattering: %.5f %.5f %.5f\n",
-        #             material.scattering[1],
-        #             material.scattering[2],
-        #             material.scattering[3]
-        #         )
 
         if (material.opacity < 1 && rand1f() >= material.opacity)
             if opbounce > 128
@@ -637,15 +564,7 @@ function trace_naive(
         end
 
         ray = Ray3f(position, incoming)
-        #         @printf("radiance: %.5f %.5f %.5f\n", radiance[1], radiance[2], radiance[3])
     end
-    #             @printf("\n")
-    #     @printf("ray %.5f %.5f %.5f\n", ray.d[1], ray.d[2], ray.d[3])
-    #     @printf("h %d ", hit)
-    #     @printf("r %.5f %.5f %.5f\n", radiance[1], radiance[2], radiance[3])
-    #     @printf("a %.5f %.5f %.5f ", hit_albedo[1], hit_albedo[2], hit_albedo[3])
-    #     @printf("n %.5f %.5f %.5f ", hit_normal[1], hit_normal[2], hit_normal[3])
-    #     @printf("w %.5f %.5f %.5f\n", weight[1], weight[2], weight[3])
 
     return (radiance, hit, hit_albedo, hit_normal)
 end
