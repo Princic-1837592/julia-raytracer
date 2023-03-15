@@ -278,7 +278,6 @@ function trace_path(
     bvh_stack::Vector{Int32},
     bvh_sub_stack::Vector{Int32},
 )
-    # initialize
     radiance = Vec3f(0, 0, 0)
     weight = Vec3f(1, 1, 1)
     volume_stack = Vector{MaterialPoint}(undef, params.bounces)
@@ -602,10 +601,8 @@ function trace_sample(
         luv,
         params.tentfilter,
     )
-    #confirmed correct hit, albedo, normal
     radiance, hit, albedo, normal =
         SAMPLERS[params.sampler](scene, bvh, lights, ray, params, bvh_stack, bvh_sub_stack)
-    #             @printf("radiance: %.5f %.5f %.5f ", radiance[1], radiance[2], radiance[3])
     if !all(isfinite.(radiance))
         radiance = Vec3f(0, 0, 0)
     end
@@ -630,25 +627,6 @@ function trace_sample(
         state.albedo[idx] = lerp(state.albedo[idx], Vec3f(0, 0, 0), weight)
         state.normal[idx] = lerp(state.normal[idx], -ray.d, weight)
     end
-    #     @printf(
-    #         "image: %.5f %.5f %.5f %.5f ",
-    #         state.image[idx][1],
-    #         state.image[idx][2],
-    #         state.image[idx][3],
-    #         state.image[idx][4],
-    #     )
-    #     @printf(
-    #         "albedo: %.5f %.5f %.5f ",
-    #         state.albedo[idx][1],
-    #         state.albedo[idx][2],
-    #         state.albedo[idx][3]
-    #     )
-    #     @printf(
-    #         "normal: %.5f %.5f %.5f\n",
-    #         state.normal[idx][1],
-    #         state.normal[idx][2],
-    #         state.normal[idx][3]
-    #     )
 end
 
 function sample_camera(
@@ -662,11 +640,10 @@ function sample_camera(
     if !tent
         uv = Vec2f((ij[1] + puv[1]) / image_size[1], (ij[2] + puv[2]) / image_size[2])
         sd = sample_disk(luv)
-        #         @printf("uv %.5f %.5f sd %.5f %.5f\n", uv[1], uv[2], sd[1], sd[2])
         eval_camera(camera, uv, sd)
     else
         #todo
-        nothing
+        Ray3f()
     end
 end
 
@@ -683,9 +660,6 @@ function get_image(image::ImageData, state::TraceState)
         image.pixels = state.image
     else
         image.pixels = state.denoised
-    end
-    for pixel in image.pixels
-        #         @printf("pixel: %.5f %.5f %.5f %.5f\n", pixel[1], pixel[2], pixel[3], pixel[4])
     end
 end
 
@@ -974,10 +948,8 @@ function sample_lights(
     ruv::Vec2f,
 )::Vec3f
     light_id = sample_uniform(length(lights.lights), rl)
-    #     @printf("light_id: %d ", light_id)
     light = lights.lights[light_id]
     if (light.instance != invalid_id)
-        #         @printf("if ")
         instance = scene.instances[light.instance]
         shape = scene.shapes[instance.shape]
         element = sample_discrete(light.elements_cdf, rel)
@@ -985,13 +957,10 @@ function sample_lights(
         lposition = eval_position(scene, instance, element, uv)
         normalize(lposition - position)
     elseif (light.environment != invalid_id)
-        #         @printf("elseif ")
         environment = scene.environments[light.environment]
         if (environment.emission_tex != invalid_id)
-            #             @printf("    if ")
             emission_tex = scene.textures[environment.emission_tex]
             idx = sample_discrete(light.elements_cdf, rel)
-            #             @printf("idx: %d ", idx)
             uv = Vec2f(
                 ((idx % emission_tex.width) + 0.5f0) / emission_tex.width,
                 ((idx / emission_tex.width) + 0.5f0) / emission_tex.height,
@@ -1005,11 +974,9 @@ function sample_lights(
                 ),
             )
         else
-            #             @printf("    else ")
             sample_sphere(ruv)
         end
     else
-        #         @printf("else ")
         Vec3f(0, 0, 0)
     end
 end
