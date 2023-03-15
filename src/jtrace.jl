@@ -84,6 +84,7 @@ function main(params::Params)
     image = get_image(state)
     save_image(params.output, image)
     println("saved image to ", params.output)
+    @printf("total time: %s\n", format_seconds((time_ns() - render_start) / 1e9))
 end
 
 main(args::String) = main(parse_cli_args(split(args)))
