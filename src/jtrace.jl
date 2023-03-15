@@ -30,9 +30,9 @@ using Printf: @printf
 
 function main(params::Params)
     render_start = time_ns()
-    if params.highqualitybvh
-        println("high quality bvh is still not implemented")
-    end
+    #     if params.highqualitybvh
+    #         println("high quality bvh is still not implemented")
+    #     end
     @printf("loading scene %s...\n", params.scene)
     load_bs = time_ns()
     scene = load_scene(params.scene, params.noparallel)

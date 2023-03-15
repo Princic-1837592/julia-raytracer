@@ -219,6 +219,70 @@ function split_middle(
     return (middle, axis)
 end
 
+function split_sah(
+    primitives::Vector{Int},
+    bboxes::Vector{Bbox3f},
+    centers::Vector{Vec3f},
+    left::Int,
+    right::Int,
+)::Tuple{Int,Int8}
+    cbbox = Bbox3f()
+    for i in left:right
+        cbbox = merge_bbox3f(cbbox, centers[primitives[i]])
+    end
+    csize = cbbox.max - cbbox.min
+    if csize == Vec3f(0, 0, 0)
+        return div((left + right + 1), 2), 1
+    end
+
+    axis = 1
+    nbins = 16
+    split = 0.0f0
+    min_cost = typemax(Float32)
+
+    for saxis in 1:3
+        for b in 1:(nbins - 1)
+            bsplit = cbbox.min[saxis] + b * csize[saxis] / nbins
+            left_bbox = Bbox3f()
+            right_bbox = Bbox3f()
+            left_nprims = 0
+            right_nprims = 0
+            for i in left:right
+                if (centers[primitives[i]][saxis] < bsplit)
+                    left_bbox = merge_bbox3f(left_bbox, bboxes[primitives[i]])
+                    left_nprims += 1
+                else
+                    right_bbox = merge_bbox3f(right_bbox, bboxes[primitives[i]])
+                    right_nprims += 1
+                end
+            end
+            cost =
+                1 +
+                left_nprims * bbox_area(left_bbox) / bbox_area(cbbox) +
+                right_nprims * bbox_area(right_bbox) / bbox_area(cbbox)
+            if cost < min_cost
+                min_cost = cost
+                split = bsplit
+                axis = saxis
+            end
+        end
+    end
+
+    middle =
+        partition((primitive) -> centers[primitive][axis] < split, primitives, left, right)
+
+    if middle == left || middle == right
+        return div((left + right + 1), 2), axis
+    end
+
+    return (middle, axis)
+end
+
+function bbox_area(b::Bbox3f)::Float32
+    size = b.max - b.min
+    0.000000000001f0 + 2 * size[1] * size[2] + 2 * size[1] * size[3] + 2 * size[2] * size[3]
+end
+
 function partition(f::Function, a::Vector{T}, start::Int, stop::Int)::Int where {T}
     i = start
     j = stop
