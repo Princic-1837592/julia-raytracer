@@ -29,10 +29,23 @@ using .Trace: make_trace_lights, make_trace_state, trace_samples, get_image
 using Printf: @printf
 
 function main(params::Params)
+    if params.addsky
+        println("addsky is not yet supported")
+        params.addsky = false
+    end
+    if params.envname != ""
+        println("envname is not yet supported")
+        params.envname = ""
+    end
+    if params.denoise
+        println("denoise is not yet supported")
+        params.denoise = false
+    end
+    if params.tentfilter
+        println("tentfilter is not yet supported")
+        params.tentfilter = false
+    end
     render_start = time_ns()
-    #     if params.highqualitybvh
-    #         println("high quality bvh is still not implemented")
-    #     end
     @printf("loading scene %s...\n", params.scene)
     load_bs = time_ns()
     scene = load_scene(params.scene, params.noparallel)
@@ -47,7 +60,6 @@ function main(params::Params)
     end
     println("finding camera...")
     params.camera = find_camera(scene, params.camera)
-    #todo(?) subdivs
     println("building bvh...")
     bvh = make_scene_bvh(scene, params.highqualitybvh, params.noparallel)
     println("making lights...")
