@@ -5,6 +5,9 @@ ytrace:
 - Date: 2023-01-03
 =#
 
+using JuliaFormatter: format
+format(pwd(); overwrite = true)
+
 module Jtrace
 
 include("utils.jl")
@@ -73,8 +76,8 @@ function main(params::Params)
     bvh_stacks = Vector{Vector{Int32}}(undef, stacks)
     bvh_sub_stacks = Vector{Vector{Int32}}(undef, stacks)
     for tid in 1:length(bvh_stacks)
-        bvh_stacks[tid] = Vector{Int32}(undef, 32)
-        bvh_sub_stacks[tid] = Vector{Int32}(undef, 32)
+        bvh_stacks[tid] = Vector{Int32}(undef, 64)
+        bvh_sub_stacks[tid] = Vector{Int32}(undef, 64)
     end
     sampling_start = time_ns()
     for _sample in 1:(params.batch):(params.samples)
@@ -103,41 +106,53 @@ end
 
 main(args::String) = main(parse_cli_args(split(args)))
 
-using JuliaFormatter: format
-
-if abspath(PROGRAM_FILE) == @__FILE__
-    main(parse_cli_args(ARGS))
-else
-    format(pwd(); overwrite = true)
-    #     scene = "tests/features1/features1"
-    scene = "tests/features1/features1_matte"
-    #     scene = "tests/features1/no_environ_floor"
-    #     scene = "tests/features1/no_textures"
-    #     scene = "tests/features1/bunny"
-    #     scene = "tests/features2/features2"
-    #     scene = "tests/features2/no_environ_floor"
-    #     scene = "tests/materials1/materials1"
-    #     scene = "tests/materials1/no_environ_floor"
-    #     scene = "tests/materials2/materials2"
-    #     scene = "tests/materials2/no_environ_floor"
-    #     scene = "tests/materials4/materials4"
-    #     scene = "tests/materials4/no_environ_floor"
-    #     scene = "tests/shapes1/shapes1"
-    #     scene = "tests/shapes1/no_environ_floor"
-    #     scene = "tests/shapes2/shapes2"
-    #     scene = "tests/shapes2/no_environ_floor"
-    #     main(
-    #         Params(
-    #             "$(scene).json";
-    #             output = "$(scene).png",
-    #             samples = 1,
-    #                                     resolution = 100,
-    #             sampler = "naive",
-    #             envhidden = true,
-    #             #             noparallel = true,
-    #             bounces = 8,
-    #         ),
-    #     )
+function profile(resolution::Int = 500, samples::Int = 30)
+    scenes = [
+        #         "scenes/features1/features1",
+        #         "scenes/features2/features2",
+        #         "scenes/materials1/materials1",
+        #         "scenes/materials2/materials2",
+        #         "scenes/materials4/materials4",
+        #         "scenes/shapes1/shapes1",
+        #         "scenes/shapes2/shapes2",
+        #         "scenes/bathroom1/bathroom1",
+        "scenes/bathroom2/bathroom2",
+        "scenes/coffee/coffee",
+        "scenes/classroom/classroom",
+        "scenes/kitchen/kitchen",
+        "scenes/livingroom1/livingroom1",
+        "scenes/livingroom2/livingroom2",
+        "scenes/livingroom3/livingroom3",
+        "scenes/staircase1/staircase1",
+        "scenes/staircase2/staircase2",
+        "scenes/ecosys/ecosys",
+    ]
+    for scene in scenes
+        main(
+            "--scene $scene.json --output $(scene)_naive.png --highqualitybvh true --resolution $resolution --samples $samples --batch 10 --sampler naive",
+        )
+    end
 end
 
 end
+
+scenes = [
+    "scenes/features1/features1",
+    "scenes/features2/features2",
+    "scenes/materials1/materials1",
+    "scenes/materials2/materials2",
+    "scenes/materials4/materials4",
+    "scenes/shapes1/shapes1",
+    "scenes/shapes2/shapes2",
+    "scenes/bathroom1/bathroom1",
+    "scenes/bathroom2/bathroom2",
+    "scenes/coffee/coffee",
+    "scenes/classroom/classroom",
+    "scenes/kitchen/kitchen",
+    "scenes/livingroom1/livingroom1",
+    "scenes/livingroom2/livingroom2",
+    "scenes/livingroom3/livingroom3",
+    "scenes/staircase1/staircase1",
+    "scenes/staircase2/staircase2",
+    "scenes/ecosys/ecosys",
+]
