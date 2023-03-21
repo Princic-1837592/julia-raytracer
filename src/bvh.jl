@@ -393,19 +393,7 @@ function intersect_shape_bvh(
     node_cur += 1
     intersection = ShapeIntersection()
     ray_dinv = Vec3f(1 / ray.d[1], 1 / ray.d[2], 1 / ray.d[3])
-    ray_dsign = Vec3i(if ray.d[1] < 0
-        1
-    else
-        0
-    end, if ray.d[2] < 0
-        1
-    else
-        0
-    end, if ray.d[3] < 0
-        1
-    else
-        0
-    end)
+    ray_dsign = Vec3i(ray.d[1] < 0 ? 1 : 0, ray.d[2] < 0 ? 1 : 0, ray.d[3] < 0 ? 1 : 0)
     while node_cur != 1
         node_cur -= 1
         node = bvh.nodes[stack[node_cur]]

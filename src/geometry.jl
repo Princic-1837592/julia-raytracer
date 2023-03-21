@@ -326,11 +326,9 @@ function quad_tangents_fromuv(
     uv4::Vec2f,
     current_uv::Vec2f,
 )::Tuple{Vec3f,Vec3f}
-    if current_uv[1] + current_uv[2] <= 1
-        triangle_tangents_fromuv(p1, p2, p4, uv1, uv2, uv4)
-    else
-        triangle_tangents_fromuv(p3, p4, p2, uv3, uv4, uv2)
-    end
+    current_uv[1] + current_uv[2] <= 1 ?
+    triangle_tangents_fromuv(p1, p2, p4, uv1, uv2, uv4) :
+    triangle_tangents_fromuv(p3, p4, p2, uv3, uv4, uv2)
 end
 
 end
