@@ -2,6 +2,8 @@
 
 \usepackage{hyperref}
 \usepackage{graphicx}
+\usepackage{geometry}
+
 \graphicspath{ {../images/} }
 
 \title{Path tracing in Julia}
@@ -15,6 +17,9 @@
 
 \begin{document}
     \maketitle
+
+    \newgeometry{top=2.0cm, bottom=2.0cm}
+    \pagenumbering{gobble}
 
 
     \section*{Introduction}\label{sec:introduction}
@@ -54,40 +59,64 @@
     Unfortunately we weren't able to load HDR images, because apparently their values get automatically clamped to
     $[0,1]$ by the Julia image library.
     We decided not to spend too much time trying to understand why and how to fix this, since it's not a problem with
-    our code and the result is still correct.\\
+    our code and the result is still correct (as shown in \hyperref[fig:livingroom1_path]{this image}).\\
     Following are some images we rendered.\\
 
     \begin{figure}[h]
-        \caption{naive sampler struggles to find light from the environment while light sampler finds it easily}
+        \caption{naive sampler struggles to find light from the environment}
         \includegraphics[width=\textwidth]{classroom_naive}
+        \centering
+        \label{fig:classroom_naive}
+    \end{figure}
+    \begin{figure}[h]
+        \caption{light sampler finds it easily}
         \includegraphics[width=\textwidth]{classroom_path}
         \centering
-        \label{fig:classroom}
+        \label{fig:classroom_path}
     \end{figure}
 
     \begin{figure}[h]
         \caption{there is no difference between naive and light sampling since the only light source is the environment}
         \includegraphics[width=\textwidth]{ecosys_naive}
+        \centering
+        \label{fig:ecosys_naive}
+    \end{figure}
+    \begin{figure}[h]
         \includegraphics[width=\textwidth]{ecosys_path}
         \centering
-        \label{fig:ecosys}
+        \label{fig:ecosys_path}
     \end{figure}
 
     \begin{figure}[h]
-        \caption{naive sampling doesn't work with volumes}
+        \caption{naive tracer doesn't handle volumes}
         \includegraphics[width=\textwidth]{materials4_naive}
+        \centering
+        \label{fig:materials4_naive}
+    \end{figure}
+    \begin{figure}[h]
+        \caption{path tracer handles volumes}
         \includegraphics[width=\textwidth]{materials4_path}
         \centering
-        \label{fig:materials4}
+        \label{fig:materials4_path}
     \end{figure}
 
     \begin{figure}[h]
-        \caption{HDR images get automatically clamped, producing a result that looks ``cold'' with respect to the Yocto/GL version}
-        \includegraphics[width=\textwidth]{materials1_path}
-        \includegraphics[width=\textwidth]{materials1_path_yocto}
+        \caption{livingroom1 in Julia}
+        \includegraphics[width=\textwidth]{livingroom1_path}
+        \label{fig:livingroom1_path}
         \centering
-        \label{fig:materials1_yocto}
     \end{figure}
-
+    \begin{figure}[h]
+        \caption{livingroom1 in Yocto/GL after converting the HDR texture to PNG}
+        \includegraphics[width=\textwidth]{livingroom1_path_yocto_png}
+        \label{fig:livingroom1_yocto_png}
+        \centering
+    \end{figure}
+    \begin{figure}[h]
+        \caption{livingroom1 in Yocto/GL with the correct HDR texture}
+        \includegraphics[width=\textwidth]{livingroom1_path_yocto}
+        \label{fig:livingroom1_yocto}
+        \centering
+    \end{figure}
 
 \end{document}
