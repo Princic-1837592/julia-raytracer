@@ -1,7 +1,6 @@
 \documentclass[12pt]{report}
 
 \usepackage{hyperref}
-%todo
 \usepackage{graphicx}
 \usepackage{geometry}
 
@@ -61,7 +60,7 @@
     Unfortunately we weren't able to load HDR images, because apparently their values get automatically clamped to
     $[0,1]$ by the Julia image library.
     We decided not to spend too much time trying to understand why and how to fix this, since it's not a problem with
-    our code and the result is still correct (as shown in \hyperref[fig:livingroom1_path]{this image}).\\
+    our code and the result is still correct (as shown \hyperref[fig:livingroom1_path]{here}).\\
     Following are some images we rendered.\\
 
     \begin{figure}[h]
@@ -97,7 +96,7 @@
         \centering
         \label{fig:materials4_naive}
     \end{figure}
-    
+
     \begin{figure}[h]
         \caption{path tracer handles volumes}
         \includegraphics[width=\textwidth]{materials4_path}
@@ -105,23 +104,24 @@
         \label{fig:materials4_path}
     \end{figure}
 
-    \begin{figure}[h]\label{fig:livingroom1_path}
+    \begin{figure}[h]
         \caption{livingroom1 in Julia}
         \includegraphics[width=\textwidth]{livingroom1_path}
         \centering
+        \label{fig:livingroom1_path}
     \end{figure}
 
-    %\begin{figure}[h]
-    %    \caption{livingroom1 in Yocto/GL after converting the HDR texture to PNG}
-    %    \includegraphics[width=\textwidth]{livingroom1_path_yocto_png}
-    %    \label{fig:livingroom1_yocto_png}
-    %    \centering
-    %\end{figure}
-    %\begin{figure}[h]
-    %    \caption{livingroom1 in Yocto/GL with the correct HDR texture}
-    %    \includegraphics[width=\textwidth]{livingroom1_path_yocto}
-    %    \label{fig:livingroom1_yocto}
-    %    \centering
-    %\end{figure}
+    \begin{figure}[h]
+        \caption{livingroom1 in Yocto/GL after converting the HDR texture to PNG}
+        \includegraphics[width=\textwidth]{images/yocto_livingroom1_path_png}
+        \centering
+        \label{fig:livingroom1_yocto_png}
+    \end{figure}
+    \begin{figure}[h]
+        \caption{livingroom1 in Yocto/GL with the correct HDR texture}
+        \includegraphics[width=\textwidth]{images/yocto_livingroom1_path}
+        \centering
+        \label{fig:livingroom1_yocto}
+    \end{figure}
 
 \end{document}
