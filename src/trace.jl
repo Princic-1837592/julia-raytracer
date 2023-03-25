@@ -277,10 +277,11 @@ function trace_path(
     params::Params,
     bvh_stack::Vector{Int32},
     bvh_sub_stack::Vector{Int32},
+    volume_stack::Vector{MaterialPoint},
 )
     radiance = Vec3f(0, 0, 0)
     weight = Vec3f(1, 1, 1)
-    volume_stack = Vector{MaterialPoint}(undef, params.bounces)
+#     volume_stack = Vector{MaterialPoint}(undef, params.bounces)
     cur_volume = 0
     max_roughness = 0.0f0
     hit = false
@@ -472,6 +473,7 @@ function trace_naive(
     params::Params,
     bvh_stack::Vector{Int32},
     bvh_sub_stack::Vector{Int32},
+    _volume_stack::Vector{MaterialPoint},
 )::Tuple{Vec3f,Bool,Vec3f,Vec3f}
     radiance = Vec3f(0, 0, 0)
     weight = Vec3f(1, 1, 1)
@@ -588,6 +590,7 @@ function trace_sample(
     params::Params,
     bvh_stack::Vector{Int32},
     bvh_sub_stack::Vector{Int32},
+    volume_stack::Vector{MaterialPoint},
 )
     camera = scene.cameras[params.camera]
     idx = state.width * j + i + 1
@@ -602,7 +605,7 @@ function trace_sample(
         params.tentfilter,
     )
     radiance, hit, albedo, normal =
-        SAMPLERS[params.sampler](scene, bvh, lights, ray, params, bvh_stack, bvh_sub_stack)
+        SAMPLERS[params.sampler](scene, bvh, lights, ray, params, bvh_stack, bvh_sub_stack,volume_stack)
     if !all(isfinite.(radiance))
         radiance = Vec3f(0, 0, 0)
     end
