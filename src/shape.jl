@@ -98,7 +98,6 @@ function load_shape(path::String)::ShapeData
     result = get_lines(ply, "line", "vertex_indices", lines)
     points = Vector{Int}(undef, 0)
     result = get_list_values(ply, "point", "vertex_indices", points)
-    #todo-check if correct. used to index @bvh:78, maybe increasing is needed here
     for collection in [points, lines, triangles, quads]
         for i in 1:length(collection)
             collection[i] = collection[i] .+ 1

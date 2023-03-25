@@ -22,7 +22,6 @@ using Images: save, RGBA, clamp01nan
 using ..Math: Vec4b, Vec4f
 using ..Color: float_to_byte, rgb_to_srgb
 
-#todo check all return values
 function load_scene(filename::String, no_parallel::Bool)::SceneData
     dir = dirname(filename)
     scene = SceneData()
