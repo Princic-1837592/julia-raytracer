@@ -197,7 +197,7 @@ function split_middle(
     if csize == Vec3f(0, 0, 0)
         return div((left + right + 1), 2), 1
     end
-    axis = 1
+    axis::Int8 = 1
     if csize[1] >= csize[2] && csize[1] >= csize[3]
         axis = 1
     end
@@ -208,8 +208,7 @@ function split_middle(
         axis = 3
     end
     split = center(cbbox)[axis]
-    middle =
-        partition((primitive) -> centers[primitive][axis] < split, primitives, left, right)
+    middle = partition(centers, axis, split, primitives, left, right)
     if middle < left || middle > right
         return (div(left + right + 1, 2), axis)
     end
@@ -232,7 +231,7 @@ function split_sah(
         return div((left + right + 1), 2), 1
     end
 
-    axis = 1
+    axis::Int8 = 1
     nbins = 16
     split = 0.0f0
     min_cost = typemax(Float32)
@@ -265,8 +264,7 @@ function split_sah(
         end
     end
 
-    middle =
-        partition((primitive) -> centers[primitive][axis] < split, primitives, left, right)
+    middle = partition(centers, axis, split, primitives, left, right)
 
     if middle == left || middle == right
         return div((left + right + 1), 2), axis
@@ -280,14 +278,21 @@ function bbox_area(b::Bbox3f)::Float32
     0.000000000001f0 + 2 * size[1] * size[2] + 2 * size[1] * size[3] + 2 * size[2] * size[3]
 end
 
-function partition(f::Function, a::Vector{T}, start::Int, stop::Int)::Int where {T}
+function partition(
+    centers::Vector{Vec3f},
+    axis::Int8,
+    split::Float32,
+    a::Vector{Int},
+    start::Int,
+    stop::Int,
+)::Int
     i = start
     j = stop
     while true
-        while i <= stop && f(a[i])
+        while i <= stop && centers[a[i]][axis] < split
             i += 1
         end
-        while j >= start && !f(a[j])
+        while j >= start && centers[a[j]][axis] >= split
             j -= 1
         end
         if i >= j
