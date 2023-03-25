@@ -26,7 +26,7 @@ include("trace.jl")
 using .Utils: format_seconds
 using .Bvh: make_scene_bvh
 using .Cli: Params, parse_cli_args
-using .Scene: add_sky, find_camera
+using .Scene: add_sky, find_camera, MaterialPoint
 using .SceneIO: load_scene, add_environment, save_image
 using .Trace: make_trace_lights, make_trace_state, trace_samples, get_image
 using Printf: @printf
@@ -79,10 +79,23 @@ function main(params::Params)
         bvh_stacks[tid] = Vector{Int32}(undef, 64)
         bvh_sub_stacks[tid] = Vector{Int32}(undef, 64)
     end
+    volume_stacks = Vector{Vector{MaterialPoint}}(undef, stacks)
+    for tid in 1:length(bvh_stacks)
+        volume_stacks[tid] = Vector{MaterialPoint}(undef, params.bounces)
+    end
     sampling_start = time_ns()
     for _sample in 1:(params.batch):(params.samples)
         batch_start = time_ns()
-        trace_samples(state, scene, bvh, lights, params, bvh_stacks, bvh_sub_stacks)
+        trace_samples(
+            state,
+            scene,
+            bvh,
+            lights,
+            params,
+            bvh_stacks,
+            bvh_sub_stacks,
+            volume_stacks,
+        )
         now = time_ns()
         @printf(
             "sample %3d/%3d in %s ETC: %s\n",

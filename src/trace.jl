@@ -220,6 +220,7 @@ function trace_samples(
     params::Params,
     bvh_stacks::Vector{Vector{Int32}},
     bvh_sub_stacks::Vector{Vector{Int32}},
+    volume_stacks::Vector{Vector{MaterialPoint}},
 )
     if state.samples >= params.samples
         return
@@ -228,6 +229,7 @@ function trace_samples(
     if params.noparallel
         bvh_stack = bvh_stacks[1]
         bvh_sub_stack = bvh_sub_stacks[1]
+        volume_stack = volume_stacks[1]
         for j in 0:(state.height - 1)
             for i in 0:(state.width - 1)
                 for sample in (state.samples):(target - 1)
@@ -242,6 +244,7 @@ function trace_samples(
                         params,
                         bvh_stack,
                         bvh_sub_stack,
+                        volume_stack,
                     )
                 end
             end
@@ -261,6 +264,7 @@ function trace_samples(
                         params,
                         bvh_stacks[Threads.threadid()],
                         bvh_sub_stacks[Threads.threadid()],
+                        volume_stacks[Threads.threadid()],
                     )
                 end
             end
@@ -281,7 +285,7 @@ function trace_path(
 )
     radiance = Vec3f(0, 0, 0)
     weight = Vec3f(1, 1, 1)
-#     volume_stack = Vector{MaterialPoint}(undef, params.bounces)
+    #     volume_stack = Vector{MaterialPoint}(undef, params.bounces)
     cur_volume = 0
     max_roughness = 0.0f0
     hit = false
@@ -604,8 +608,16 @@ function trace_sample(
         luv,
         params.tentfilter,
     )
-    radiance, hit, albedo, normal =
-        SAMPLERS[params.sampler](scene, bvh, lights, ray, params, bvh_stack, bvh_sub_stack,volume_stack)
+    radiance, hit, albedo, normal = SAMPLERS[params.sampler](
+        scene,
+        bvh,
+        lights,
+        ray,
+        params,
+        bvh_stack,
+        bvh_sub_stack,
+        volume_stack,
+    )
     if !all(isfinite.(radiance))
         radiance = Vec3f(0, 0, 0)
     end
