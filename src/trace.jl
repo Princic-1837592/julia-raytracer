@@ -285,7 +285,6 @@ function trace_path(
 )
     radiance = Vec3f(0, 0, 0)
     weight = Vec3f(1, 1, 1)
-    #     volume_stack = Vector{MaterialPoint}(undef, params.bounces)
     cur_volume = 0
     max_roughness = 0.0f0
     hit = false
