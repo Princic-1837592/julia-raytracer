@@ -5,7 +5,7 @@
 \usepackage{graphicx}
 \usepackage{geometry}
 
-\hypersetup{colorlinks,urlcolor=blue}
+\hypersetup{colorlinks,urlcolor=blue, linkcolor=blue}
 \graphicspath{ {../images/} }
 
 \title{Path tracing in Julia}
@@ -70,6 +70,7 @@
         \centering
         \label{fig:classroom_naive}
     \end{figure}
+
     \begin{figure}[h]
         \caption{light sampler finds it easily}
         \includegraphics[width=\textwidth]{classroom_path}
@@ -83,6 +84,7 @@
         \centering
         \label{fig:ecosys_naive}
     \end{figure}
+
     \begin{figure}[h]
         \includegraphics[width=\textwidth]{ecosys_path}
         \centering
@@ -95,6 +97,7 @@
         \centering
         \label{fig:materials4_naive}
     \end{figure}
+    
     \begin{figure}[h]
         \caption{path tracer handles volumes}
         \includegraphics[width=\textwidth]{materials4_path}
@@ -102,23 +105,23 @@
         \label{fig:materials4_path}
     \end{figure}
 
-    \begin{figure}[h]
+    \begin{figure}[h]\label{fig:livingroom1_path}
         \caption{livingroom1 in Julia}
         \includegraphics[width=\textwidth]{livingroom1_path}
-        \label{fig:livingroom1_path}
         \centering
     \end{figure}
-    \begin{figure}[h]
-        \caption{livingroom1 in Yocto/GL after converting the HDR texture to PNG}
-        \includegraphics[width=\textwidth]{livingroom1_path_yocto_png}
-        \label{fig:livingroom1_yocto_png}
-        \centering
-    \end{figure}
-    \begin{figure}[h]
-        \caption{livingroom1 in Yocto/GL with the correct HDR texture}
-        \includegraphics[width=\textwidth]{livingroom1_path_yocto}
-        \label{fig:livingroom1_yocto}
-        \centering
-    \end{figure}
+
+    %\begin{figure}[h]
+    %    \caption{livingroom1 in Yocto/GL after converting the HDR texture to PNG}
+    %    \includegraphics[width=\textwidth]{livingroom1_path_yocto_png}
+    %    \label{fig:livingroom1_yocto_png}
+    %    \centering
+    %\end{figure}
+    %\begin{figure}[h]
+    %    \caption{livingroom1 in Yocto/GL with the correct HDR texture}
+    %    \includegraphics[width=\textwidth]{livingroom1_path_yocto}
+    %    \label{fig:livingroom1_yocto}
+    %    \centering
+    %\end{figure}
 
 \end{document}
