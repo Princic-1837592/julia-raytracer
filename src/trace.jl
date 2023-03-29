@@ -476,7 +476,6 @@ function trace_naive(
     params::Params,
     bvh_stack::Vector{Int32},
     bvh_sub_stack::Vector{Int32},
-    _volume_stack::Vector{MaterialPoint},
 )::Tuple{Vec3f,Bool,Vec3f,Vec3f}
     radiance = Vec3f(0, 0, 0)
     weight = Vec3f(1, 1, 1)
@@ -607,16 +606,22 @@ function trace_sample(
         luv,
         params.tentfilter,
     )
-    radiance, hit, albedo, normal = SAMPLERS[params.sampler](
-        scene,
-        bvh,
-        lights,
-        ray,
-        params,
-        bvh_stack,
-        bvh_sub_stack,
-        volume_stack,
-    )
+    if params.sampler == 1
+        radiance, hit, albedo, normal =
+            trace_naive(scene, bvh, lights, ray, params, bvh_stack, bvh_sub_stack)
+    elseif params.sampler == 2
+        radiance, hit, albedo, normal = trace_path(
+            scene,
+            bvh,
+            lights,
+            ray,
+            params,
+            bvh_stack,
+            bvh_sub_stack,
+            volume_stack,
+        )
+    end
+
     if !all(isfinite.(radiance))
         radiance = Vec3f(0, 0, 0)
     end
