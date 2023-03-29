@@ -282,23 +282,23 @@ function partition(
     centers::Vector{Vec3f},
     axis::Int8,
     split::Float32,
-    a::Vector{Int},
+    primitives::Vector{Int},
     start::Int,
     stop::Int,
 )::Int
     i = start
     j = stop
     while true
-        while i <= stop && centers[a[i]][axis] < split
+        while i <= stop && centers[primitives[i]][axis] < split
             i += 1
         end
-        while j >= start && centers[a[j]][axis] >= split
+        while j >= start && centers[primitives[j]][axis] >= split
             j -= 1
         end
         if i >= j
             break
         end
-        a[i], a[j] = a[j], a[i]
+        primitives[i], primitives[j] = primitives[j], primitives[i]
     end
     j
 end
