@@ -197,7 +197,7 @@ function split_middle(
     if csize == Vec3f(0, 0, 0)
         return div((left + right + 1), 2), 1
     end
-    axis = 1
+    axis::Int8 = 1
     if csize[1] >= csize[2] && csize[1] >= csize[3]
         axis = 1
     end
@@ -231,7 +231,7 @@ function split_sah(
         return div((left + right + 1), 2), 1
     end
 
-    axis = 1
+    axis::Int8 = 1
     nbins = 16
     split = 0.0f0
     min_cost = typemax(Float32)
