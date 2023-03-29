@@ -280,7 +280,7 @@ function bbox_area(b::Bbox3f)::Float32
     0.000000000001f0 + 2 * size[1] * size[2] + 2 * size[1] * size[3] + 2 * size[2] * size[3]
 end
 
-function partition(f::Function, a::Vector{T}, start::Int, stop::Int)::Int where {T}
+function partition(f::Function, a::Vector{Int}, start::Int, stop::Int)::Int
     i = start
     j = stop
     while true
@@ -315,19 +315,7 @@ function intersect_scene_bvh(
     node_cur += 1
     intersection = SceneIntersection()
     ray_dinv = Vec3f(1 / ray.d[1], 1 / ray.d[2], 1 / ray.d[3])
-    ray_dsign = Vec3i(if ray.d[1] < 0
-        1
-    else
-        0
-    end, if ray.d[2] < 0
-        1
-    else
-        0
-    end, if ray.d[3] < 0
-        1
-    else
-        0
-    end)
+    ray_dsign = Vec3i(ray.d[1] < 0 ? 1 : 0, ray.d[2] < 0 ? 1 : 0, ray.d[3] < 0 ? 1 : 0)
     while node_cur != 1
         node_cur -= 1
         node = bvh.nodes[stack[node_cur]]
