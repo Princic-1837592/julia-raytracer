@@ -44,10 +44,6 @@ function main(params::Params)
         println("denoise is not yet supported")
         params.denoise = false
     end
-    if params.tentfilter
-        println("tentfilter is not yet supported")
-        params.tentfilter = false
-    end
     render_start = time_ns()
     @printf("loading scene %s...\n", params.scene)
     load_bs = time_ns()

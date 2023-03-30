@@ -661,8 +661,15 @@ function sample_camera(
         sd = sample_disk(luv)
         eval_camera(camera, uv, sd)
     else
-        #todo
-        Ray3f()
+        width = 2.0f0
+        offset = 0.5f0
+        fuv =
+            width .* Vec2f(
+                puv[1] < 0.5f0 ? sqrt(2 * puv[1]) - 1 : 1 - sqrt(2 - 2 * puv[1]),
+                puv[2] < 0.5f0 ? sqrt(2 * puv[2]) - 1 : 1 - sqrt(2 - 2 * puv[2]),
+            ) .+ offset
+        uv = Vec2f((ij[1] + fuv[1]) / image_size[1], (ij[2] + fuv[2]) / image_size[2])
+        eval_camera(camera, uv, sample_disk(luv))
     end
 end
 
