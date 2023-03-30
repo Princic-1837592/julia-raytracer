@@ -607,9 +607,6 @@ function trace_sample(
         params.tentfilter,
     )
     if params.sampler == 1
-        radiance, hit, albedo, normal =
-            trace_naive(scene, bvh, lights, ray, params, bvh_stack, bvh_sub_stack)
-    elseif params.sampler == 2
         radiance, hit, albedo, normal = trace_path(
             scene,
             bvh,
@@ -620,6 +617,9 @@ function trace_sample(
             bvh_sub_stack,
             volume_stack,
         )
+    elseif params.sampler == 2
+        radiance, hit, albedo, normal =
+            trace_naive(scene, bvh, lights, ray, params, bvh_stack, bvh_sub_stack)
     end
 
     if !all(isfinite.(radiance))
