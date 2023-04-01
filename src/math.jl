@@ -10,7 +10,7 @@ module Math
 using StaticArrays: SVector
 using Images: RGBA, RGB
 
-const pif = Float32(pi)
+const pif::Float32 = Float32(pi)
 
 const Vec2i = SVector{2,Int}
 Vec2i() = Vec2i(0, 0)
