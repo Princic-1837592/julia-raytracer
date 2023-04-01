@@ -79,6 +79,10 @@ cli_parser = ArgParseSettings()
     help = "run samples in batches"
     arg_type = Int
     default = 1
+    "--bvhstacksize"
+    help = "max depth of bvh exploration"
+    arg_type = Int
+    default = 128
 end
 
 const SAMPLER_TYPES = ["path", "naive"]
@@ -101,25 +105,27 @@ mutable struct Params
     clamp          :: Int
     nocaustics     :: Bool
     batch          :: Int
+    bvhstacksize   :: Int
 
     function Params(
         scene::String;
-        output = "tests/test_scene.png",
-        camera = "",
-        addsky = false,
-        envname = "",
-        resolution = 1280,
-        samples = 512,
-        bounces = 8,
-        denoise = false,
-        noparallel = false,
-        highqualitybvh = false,
-        envhidden = false,
-        tentfilter = false,
-        sampler = "path",
-        clamp = 10.0f0,
-        nocaustics = false,
-        batch = 1,
+        output,
+        camera,
+        addsky,
+        envname,
+        resolution,
+        samples,
+        bounces,
+        denoise,
+        noparallel,
+        highqualitybvh,
+        envhidden,
+        tentfilter,
+        sampler,
+        clamp,
+        nocaustics,
+        batch,
+        bvhstacksize,
     )
         sidx = indexin([sampler], SAMPLER_TYPES)
         sampler = if sidx[1] == nothing
@@ -145,6 +151,7 @@ mutable struct Params
             clamp,
             nocaustics,
             batch,
+            bvhstacksize,
         )
     end
 
@@ -173,6 +180,7 @@ mutable struct Params
             params["clamp"],
             params["nocaustics"],
             params["batch"],
+            params["bvhstacksize"],
         )
     end
 end
