@@ -31,7 +31,10 @@ using .SceneIO: load_scene, add_environment, save_image
 using .Trace: make_trace_lights, make_trace_state, trace_samples, get_image
 using Printf: @printf
 
-function main(params::Params)
+function main(params)
+    if params == nothing
+        return
+    end
     if params.addsky
         println("addsky is not yet supported")
         params.addsky = false

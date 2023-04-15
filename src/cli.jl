@@ -107,54 +107,6 @@ mutable struct Params
     batch          :: Int
     bvhstacksize   :: Int
 
-    function Params(
-        scene::String;
-        output,
-        camera,
-        addsky,
-        envname,
-        resolution,
-        samples,
-        bounces,
-        denoise,
-        noparallel,
-        highqualitybvh,
-        envhidden,
-        tentfilter,
-        sampler,
-        clamp,
-        nocaustics,
-        batch,
-        bvhstacksize,
-    )
-        sidx = indexin([sampler], SAMPLER_TYPES)
-        sampler = if sidx[1] == nothing
-            1
-        else
-            sidx[1]
-        end
-        new(
-            scene,
-            output,
-            camera,
-            addsky,
-            envname,
-            resolution,
-            samples,
-            bounces,
-            denoise,
-            noparallel,
-            highqualitybvh,
-            envhidden,
-            tentfilter,
-            sampler,
-            clamp,
-            nocaustics,
-            batch,
-            bvhstacksize,
-        )
-    end
-
     function Params(params)
         sidx = indexin([params["sampler"]], SAMPLER_TYPES)
         sampler = if sidx[1] == nothing
@@ -185,9 +137,13 @@ mutable struct Params
     end
 end
 
-function parse_cli_args(args)::Params
+function parse_cli_args(args)
     params = parse_args(args, cli_parser)
-    Params(params)
+    if params == nothing
+        nothing
+    else
+        Params(params)
+    end
 end
 
 end
