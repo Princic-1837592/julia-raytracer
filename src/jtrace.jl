@@ -5,9 +5,6 @@ ytrace:
 - Date: 2023-01-03
 =#
 
-using JuliaFormatter: format
-format(pwd(); overwrite = true)
-
 module Jtrace
 
 include("utils.jl")
@@ -118,53 +115,4 @@ end
 
 main(args::String) = main(parse_cli_args(split(args)))
 
-function profile(resolution::Int = 500, samples::Int = 30)
-    scenes = [
-        #         "scenes/features1/features1",
-        #         "scenes/features2/features2",
-        #         "scenes/materials1/materials1",
-        #         "scenes/materials2/materials2",
-        #         "scenes/materials4/materials4",
-        #         "scenes/shapes1/shapes1",
-        #         "scenes/shapes2/shapes2",
-        #         "scenes/bathroom1/bathroom1",
-        "scenes/bathroom2/bathroom2",
-        "scenes/coffee/coffee",
-        "scenes/classroom/classroom",
-        "scenes/kitchen/kitchen",
-        "scenes/livingroom1/livingroom1",
-        "scenes/livingroom2/livingroom2",
-        "scenes/livingroom3/livingroom3",
-        "scenes/staircase1/staircase1",
-        "scenes/staircase2/staircase2",
-        "scenes/ecosys/ecosys",
-    ]
-    for scene in scenes
-        main(
-            "--scene $scene.json --output $(scene)_naive.png --highqualitybvh true --resolution $resolution --samples $samples --batch 10 --sampler naive",
-        )
-    end
 end
-
-end
-
-scenes = [
-    "scenes/features1/features1",
-    "scenes/features2/features2",
-    "scenes/materials1/materials1",
-    "scenes/materials2/materials2",
-    "scenes/materials4/materials4",
-    "scenes/shapes1/shapes1",
-    "scenes/shapes2/shapes2",
-    "scenes/bathroom1/bathroom1",
-    "scenes/bathroom2/bathroom2",
-    "scenes/coffee/coffee",
-    "scenes/classroom/classroom",
-    "scenes/kitchen/kitchen",
-    "scenes/livingroom1/livingroom1",
-    "scenes/livingroom2/livingroom2",
-    "scenes/livingroom3/livingroom3",
-    "scenes/staircase1/staircase1",
-    "scenes/staircase2/staircase2",
-    "scenes/ecosys/ecosys",
-]
